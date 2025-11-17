@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings
 from src.middleware import TimingMiddleware
-from src.routers import auth
+from src.routers import auth, categories, prompts
 
 app = FastAPI(
     title=settings.app_name,
@@ -29,6 +29,8 @@ app.add_middleware(TimingMiddleware)
 
 # Include routers
 app.include_router(auth.router, prefix="/api")
+app.include_router(prompts.router, prefix="/api")
+app.include_router(categories.router, prefix="/api")
 
 
 @app.get("/", summary="Root endpoint")
