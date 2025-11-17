@@ -1,5 +1,6 @@
 """Tests for authentication service."""
 
+import ldap
 import pytest
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -15,10 +16,16 @@ class TestAuthService:
     @patch("src.services.auth_service.ldap")
     def test_authenticate_ldap_success(self, mock_ldap):
         """Test successful LDAP authentication."""
-        # Mock LDAP connection
-        mock_conn = Mock()
-        mock_ldap.initialize.return_value = mock_conn
-        mock_conn.search_s.return_value = [
+        # Mock admin LDAP connection (for search)
+        mock_admin_conn = Mock()
+        # Mock user LDAP connection (for user bind)
+        mock_user_conn = Mock()
+        
+        # Set up side_effect to return different connections for admin and user
+        mock_ldap.initialize.side_effect = [mock_admin_conn, mock_user_conn]
+        
+        # Mock admin connection search
+        mock_admin_conn.search_s.return_value = [
             (
                 "CN=testuser,DC=company,DC=com",
                 {
@@ -27,10 +34,9 @@ class TestAuthService:
                 },
             )
         ]
-
-        # Mock user bind
-        mock_user_conn = Mock()
-        mock_ldap.initialize.return_value = mock_user_conn
+        
+        # Mock user connection bind (should succeed)
+        mock_user_conn.simple_bind_s.return_value = None
 
         result = AuthService.authenticate_ldap("testuser", "password")
 
@@ -38,23 +44,39 @@ class TestAuthService:
         assert result["username"] == "testuser"
         assert result["email"] == "testuser@company.com"
         assert result["full_name"] == "Test User"
+        
+        # Verify admin connection was used for search
+        mock_admin_conn.search_s.assert_called_once()
+        # Verify user connection was used for bind
+        mock_user_conn.simple_bind_s.assert_called_once()
 
     @patch("src.services.auth_service.ldap")
     def test_authenticate_ldap_invalid_credentials(self, mock_ldap):
         """Test LDAP authentication with invalid credentials."""
-        mock_conn = Mock()
-        mock_ldap.initialize.return_value = mock_conn
-        mock_conn.search_s.return_value = [
+        # Mock admin LDAP connection (for search)
+        mock_admin_conn = Mock()
+        # Mock user LDAP connection (for user bind)
+        mock_user_conn = Mock()
+        
+        # Set up side_effect to return different connections
+        mock_ldap.initialize.side_effect = [mock_admin_conn, mock_user_conn]
+        
+        # Mock admin connection search (finds user)
+        mock_admin_conn.search_s.return_value = [
             ("CN=testuser,DC=company,DC=com", {})
         ]
-
-        mock_user_conn = Mock()
-        mock_ldap.initialize.return_value = mock_user_conn
-        mock_user_conn.simple_bind_s.side_effect = Exception("INVALID_CREDENTIALS")
+        
+        # Mock user connection bind (raises INVALID_CREDENTIALS)
+        mock_user_conn.simple_bind_s.side_effect = ldap.INVALID_CREDENTIALS
 
         result = AuthService.authenticate_ldap("testuser", "wrongpassword")
 
         assert result is None
+        
+        # Verify admin connection was used for search
+        mock_admin_conn.search_s.assert_called_once()
+        # Verify user connection was used for bind
+        mock_user_conn.simple_bind_s.assert_called_once()
 
     def test_get_or_create_user_new_user(self, db_session):
         """Test creating a new user from LDAP info."""
