@@ -47,6 +47,13 @@ async def login(
     # Get or create user in database
     user = AuthService.get_or_create_user(db, ldap_user_info)
 
+    # Check if user account is active
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive",
+        )
+
     # Create access token
     access_token = AuthService.create_access_token(user.id)
 
