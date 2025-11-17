@@ -425,7 +425,7 @@ AWS_SECRETS_MANAGER_ENABLED=False
 
 ### Frontend (.env)
 ```env
-VITE_API_BASE_URL=http://localhost:8000/api
+VITE_API_BASE_URL=http://localhost:7999/api
 VITE_APP_NAME=PromptShare
 ```
 
@@ -441,7 +441,7 @@ pip install -r requirements-dev.txt
 cp .env.example .env
 # Edit .env with your local settings
 alembic upgrade head
-uvicorn src.main:app --reload
+uvicorn src.main:app --reload --port 7999
 ```
 
 2. **Frontend Setup**:
@@ -587,13 +587,13 @@ alembic upgrade head
 cd ../frontend
 npm install
 cp .env.example .env
-# Edit .env with API URL (http://localhost:8000/api)
+# Edit .env with API URL (http://localhost:7999/api)
 
 # Run development servers
 # Terminal 1: Backend
 cd backend
 source venv/bin/activate
-uvicorn src.main:app --reload
+uvicorn src.main:app --reload --port 7999
 
 # Terminal 2: Frontend
 cd frontend
