@@ -90,11 +90,37 @@ API documentation at `http://localhost:8000/api/docs`
 
 ## 🧪 Testing
 
-Run tests with:
+Tests use a PostgreSQL database to match production and support PostgreSQL-specific features (ARRAY, UUID, enums).
+
+### Setup Test Database
+
+1. Start the test PostgreSQL database:
+```bash
+docker-compose -f docker-compose.test.yml up -d
+```
+
+2. Wait for the database to be ready (healthcheck will verify).
+
+### Run Tests
+
 ```bash
 cd backend
 pytest
 pytest --cov=src --cov-report=html  # With coverage
+```
+
+### Custom Test Database
+
+You can override the test database URL:
+```bash
+TEST_DATABASE_URL="postgresql+psycopg://user:pass@host:port/db" pytest
+```
+
+### Cleanup
+
+Stop the test database when done:
+```bash
+docker-compose -f docker-compose.test.yml down
 ```
 
 ## 📝 Development Status
