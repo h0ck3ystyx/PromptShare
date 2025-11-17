@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from src.dependencies import CurrentUserDep, DatabaseDep
 from src.schemas.user import Token, UserResponse
@@ -29,8 +30,12 @@ async def login(
     Raises:
         HTTPException: If authentication fails
     """
-    # Authenticate with LDAP
-    ldap_user_info = AuthService.authenticate_ldap(form_data.username, form_data.password)
+    # Authenticate with LDAP (run in thread pool to avoid blocking event loop)
+    ldap_user_info = await run_in_threadpool(
+        AuthService.authenticate_ldap,
+        form_data.username,
+        form_data.password,
+    )
 
     if not ldap_user_info:
         raise HTTPException(
