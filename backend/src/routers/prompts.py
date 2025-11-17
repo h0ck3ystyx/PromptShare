@@ -33,6 +33,9 @@ async def list_prompts(
     category_id: Optional[UUID] = Query(None, description="Filter by category ID"),
     author_id: Optional[UUID] = Query(None, description="Filter by author ID"),
     featured_only: bool = Query(False, description="Return only featured prompts"),
+    q: Optional[str] = Query(None, description="Keyword search across title, description, and content"),
+    title: Optional[str] = Query(None, description="Search in title field"),
+    content: Optional[str] = Query(None, description="Search in content field"),
 ) -> PaginatedResponse[PromptResponse]:
     """
     Get a paginated list of prompts with optional filters.
@@ -46,6 +49,9 @@ async def list_prompts(
         category_id: Filter by category ID
         author_id: Filter by author ID
         featured_only: Return only featured prompts
+        q: Keyword search across title, description, and content
+        title: Search in title field
+        content: Search in content field
 
     Returns:
         PaginatedResponse: Paginated list of prompts
@@ -60,6 +66,9 @@ async def list_prompts(
         category_id=category_id,
         author_id=author_id,
         featured_only=featured_only,
+        search_query=q,
+        title_search=title,
+        content_search=content,
     )
 
     # Convert to response format with category IDs
@@ -244,13 +253,18 @@ async def delete_prompt(
 async def track_prompt_copy(
     prompt_id: UUID,
     db: DatabaseDep,
+    platform_tag: Optional[str] = Query(None, description="Platform tag context"),
 ) -> MessageResponse:
     """
     Track a prompt copy event for analytics.
+    
+    Note: This endpoint is public (no authentication required) to allow
+    tracking of copy events from unauthenticated users.
 
     Args:
         prompt_id: Prompt UUID
         db: Database session
+        platform_tag: Optional platform tag context
 
     Returns:
         MessageResponse: Success message
@@ -258,7 +272,13 @@ async def track_prompt_copy(
     Raises:
         HTTPException: If prompt not found
     """
-    PromptService.track_copy(db=db, prompt_id=prompt_id)
+    # Track copy event (user_id will be None for unauthenticated users)
+    PromptService.track_copy(
+        db=db,
+        prompt_id=prompt_id,
+        user_id=None,  # Could be enhanced to extract from optional auth token
+        platform_tag=platform_tag,
+    )
 
     return MessageResponse(message="Copy event tracked successfully")
 

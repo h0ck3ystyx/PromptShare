@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from src.constants import PromptStatus, UserRole
 from src.models.category import Category
 from src.models.prompt import Prompt
+from src.models.prompt_copy_event import PromptCopyEvent
 from src.models.user import User
 from src.schemas.prompt import PromptCreate, PromptUpdate
 
@@ -104,6 +105,9 @@ class PromptService:
         category_id: Optional[UUID] = None,
         author_id: Optional[UUID] = None,
         featured_only: bool = False,
+        search_query: Optional[str] = None,
+        title_search: Optional[str] = None,
+        content_search: Optional[str] = None,
     ) -> tuple[list[Prompt], int]:
         """
         Get list of prompts with filters and pagination.
@@ -117,6 +121,9 @@ class PromptService:
             category_id: Filter by category ID
             author_id: Filter by author ID
             featured_only: Return only featured prompts
+            search_query: Keyword search across title, description, and content
+            title_search: Search in title field
+            content_search: Search in content field
 
         Returns:
             tuple: (list of prompts, total count)
@@ -151,6 +158,26 @@ class PromptService:
 
         if featured_only:
             query = query.filter(Prompt.is_featured == True)
+
+        # Text search filters
+        from sqlalchemy import or_
+        
+        if search_query:
+            # Search across title, description, and content
+            search_pattern = f"%{search_query}%"
+            query = query.filter(
+                or_(
+                    Prompt.title.ilike(search_pattern),
+                    Prompt.description.ilike(search_pattern),
+                    Prompt.content.ilike(search_pattern),
+                )
+            )
+        
+        if title_search:
+            query = query.filter(Prompt.title.ilike(f"%{title_search}%"))
+        
+        if content_search:
+            query = query.filter(Prompt.content.ilike(f"%{content_search}%"))
 
         # Get total count before pagination
         total = query.count()
@@ -274,13 +301,24 @@ class PromptService:
         db.commit()
 
     @staticmethod
-    def track_copy(db: Session, prompt_id: UUID) -> None:
+    def track_copy(
+        db: Session,
+        prompt_id: UUID,
+        user_id: Optional[UUID] = None,
+        platform_tag: Optional[str] = None,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> None:
         """
         Track a prompt copy event (for analytics).
 
         Args:
             db: Database session
             prompt_id: Prompt UUID
+            user_id: Optional user ID if authenticated
+            platform_tag: Optional platform tag context
+            ip_address: Optional IP address of the requester
+            user_agent: Optional user agent string
 
         Raises:
             HTTPException: If prompt not found
@@ -293,7 +331,19 @@ class PromptService:
                 detail="Prompt not found",
             )
 
-        # For now, just verify prompt exists
-        # Analytics tracking will be implemented in Phase 7
-        # This endpoint is here for API consistency
+        # Create and persist copy event
+        copy_event = PromptCopyEvent(
+            prompt_id=prompt_id,
+            user_id=user_id,
+            platform_tag=platform_tag,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        db.add(copy_event)
+        
+        # Increment view count as engagement metric
+        prompt.view_count += 1
+        
+        db.commit()
 
