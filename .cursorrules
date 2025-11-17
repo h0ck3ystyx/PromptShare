@@ -1,0 +1,14 @@
+# .cursorrules
+rules:
+  - Use snake_case for variable and function names.
+  - All files in src/ and tests/ must have __init__.py.
+  - Public functions and classes require proper docstrings (PEP 257) and type annotations.
+  - Always lint code using ruff and format before commit.
+  - Organize FastAPI (or Flask) apps in modules: routers, models, services, constants.
+  - All API endpoints use typed Pydantic models; include a summary docstring for docs.
+  - Use dependency injection for resources and avoid globals.
+  - All environment configuration via env variables only.
+  - Require unit tests for each logic module; use pytest and keep >85% coverage.
+  - Document complex code and prompt AI to add clarifying comments where needed.
+  - No secrets in code—use secure env or vault integration.
+  - Review and upvote effective Cursor rules in team meetings.[web:43][web:47][web:49][web:59]

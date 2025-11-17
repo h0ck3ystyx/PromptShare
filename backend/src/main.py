@@ -1,0 +1,58 @@
+"""FastAPI application entry point."""
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from src.config import settings
+from src.middleware import TimingMiddleware
+from src.routers import auth
+
+app = FastAPI(
+    title=settings.app_name,
+    description="Internal prompt-sharing web application",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,  # Converted from comma-separated string
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Custom middleware
+app.add_middleware(TimingMiddleware)
+
+# Include routers
+app.include_router(auth.router, prefix="/api")
+
+
+@app.get("/", summary="Root endpoint")
+async def root() -> dict:
+    """
+    Root endpoint for health check.
+
+    Returns:
+        dict: Application information
+    """
+    return {
+        "name": settings.app_name,
+        "version": "1.0.0",
+        "status": "running",
+    }
+
+
+@app.get("/api/health", summary="Health check endpoint")
+async def health_check() -> dict:
+    """
+    Health check endpoint.
+
+    Returns:
+        dict: Health status
+    """
+    return {"status": "healthy"}
+

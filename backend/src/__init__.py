@@ -1,0 +1,2 @@
+"""PromptShare backend application."""
+
