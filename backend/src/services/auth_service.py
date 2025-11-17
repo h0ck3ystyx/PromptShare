@@ -28,6 +28,9 @@ class AuthService:
         Returns:
             dict: User information from LDAP if authentication succeeds, None otherwise
         """
+        conn = None
+        user_conn = None
+
         try:
             # Initialize LDAP connection
             conn = ldap.initialize(settings.ldap_server)
@@ -61,14 +64,24 @@ class AuthService:
             except ldap.INVALID_CREDENTIALS:
                 return None
             finally:
-                user_conn.unbind()
+                # Only unbind if connection was successfully created
+                if user_conn is not None:
+                    try:
+                        user_conn.unbind()
+                    except Exception:
+                        pass  # Ignore errors during cleanup
 
         except Exception as e:
             # Log error in production
             print(f"LDAP authentication error: {e}")
             return None
         finally:
-            conn.unbind()
+            # Only unbind if connection was successfully created
+            if conn is not None:
+                try:
+                    conn.unbind()
+                except Exception:
+                    pass  # Ignore errors during cleanup
 
     @staticmethod
     def get_or_create_user(db: Session, ldap_user_info: dict) -> User:

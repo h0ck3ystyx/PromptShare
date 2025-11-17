@@ -118,6 +118,50 @@ class TestAuthService:
         assert user.id == existing_user.id
         assert user.username == "existinguser"
 
+    @patch("src.services.auth_service.ldap")
+    def test_authenticate_ldap_connection_failure(self, mock_ldap):
+        """Test LDAP authentication when connection initialization fails."""
+        # Mock ldap.initialize to raise an exception
+        mock_ldap.initialize.side_effect = Exception("Connection failed")
+
+        # Should return None gracefully without raising UnboundLocalError
+        result = AuthService.authenticate_ldap("testuser", "password")
+
+        assert result is None
+
+    @patch("src.services.auth_service.ldap")
+    def test_authenticate_ldap_admin_bind_failure(self, mock_ldap):
+        """Test LDAP authentication when admin bind fails."""
+        mock_admin_conn = Mock()
+        mock_ldap.initialize.return_value = mock_admin_conn
+        # Mock admin bind to fail
+        mock_admin_conn.simple_bind_s.side_effect = Exception("Bind failed")
+
+        # Should return None gracefully
+        result = AuthService.authenticate_ldap("testuser", "password")
+
+        assert result is None
+        # Verify unbind was called if connection was created
+        mock_admin_conn.unbind.assert_called_once()
+
+    @patch("src.services.auth_service.ldap")
+    def test_authenticate_ldap_user_connection_failure(self, mock_ldap):
+        """Test LDAP authentication when user connection initialization fails."""
+        mock_admin_conn = Mock()
+        # First call succeeds (admin), second call fails (user)
+        mock_ldap.initialize.side_effect = [mock_admin_conn, Exception("User connection failed")]
+        
+        mock_admin_conn.search_s.return_value = [
+            ("CN=testuser,DC=company,DC=com", {})
+        ]
+
+        # Should return None gracefully without raising UnboundLocalError
+        result = AuthService.authenticate_ldap("testuser", "password")
+
+        assert result is None
+        # Verify admin connection was cleaned up
+        mock_admin_conn.unbind.assert_called_once()
+
     def test_create_access_token(self):
         """Test JWT token creation."""
         user_id = uuid4()
