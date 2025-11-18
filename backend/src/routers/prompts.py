@@ -3,10 +3,10 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
-from src.constants import PlatformTag, PromptStatus
-from src.dependencies import CurrentUserDep, DatabaseDep
+from src.constants import PlatformTag, PromptStatus, SortOrder
+from src.dependencies import CurrentUserDep, DatabaseDep, OptionalUserDep
 from src.schemas.common import MessageResponse, PaginatedResponse
 from src.schemas.prompt import (
     PromptCreate,
@@ -36,6 +36,7 @@ async def list_prompts(
     q: Optional[str] = Query(None, description="Keyword search across title, description, and content"),
     title: Optional[str] = Query(None, description="Search in title field"),
     content: Optional[str] = Query(None, description="Search in content field"),
+    sort_by: SortOrder = Query(SortOrder.NEWEST, description="Sort order"),
 ) -> PaginatedResponse[PromptResponse]:
     """
     Get a paginated list of prompts with optional filters.
@@ -52,24 +53,33 @@ async def list_prompts(
         q: Keyword search across title, description, and content
         title: Search in title field
         content: Search in content field
+        sort_by: Sort order (newest, oldest, most_viewed, least_viewed, highest_rated, lowest_rated)
 
     Returns:
         PaginatedResponse: Paginated list of prompts
     """
     skip = (page - 1) * page_size
-    prompts, total = PromptService.get_prompts(
-        db=db,
-        skip=skip,
-        limit=page_size,
-        status_filter=status_filter,
-        platform_tag=platform_tag.value if platform_tag else None,
-        category_id=category_id,
-        author_id=author_id,
-        featured_only=featured_only,
-        search_query=q,
-        title_search=title,
-        content_search=content,
-    )
+    try:
+        prompts, total = PromptService.get_prompts(
+            db=db,
+            skip=skip,
+            limit=page_size,
+            status_filter=status_filter,
+            platform_tag=platform_tag.value if platform_tag else None,
+            category_id=category_id,
+            author_id=author_id,
+            featured_only=featured_only,
+            search_query=q,
+            title_search=title,
+            content_search=content,
+            sort_by=sort_by,
+        )
+    except ValueError as e:
+        # Handle unsupported sort orders (e.g., highest_rated before Phase 4)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
     # Convert to response format with category IDs
     prompt_responses = []
@@ -126,12 +136,13 @@ async def get_prompt(
         )
 
     # Build response with author info and category IDs
-    response_dict = PromptDetailResponse.model_validate(prompt).model_dump()
-    response_dict["category_ids"] = [cat.id for cat in prompt.categories]
-    response_dict["author_username"] = prompt.author.username
-    response_dict["author_full_name"] = prompt.author.full_name
+    # First create base PromptResponse, then add author fields
+    base_dict = PromptResponse.model_validate(prompt).model_dump()
+    base_dict["category_ids"] = [cat.id for cat in prompt.categories]
+    base_dict["author_username"] = prompt.author.username
+    base_dict["author_full_name"] = prompt.author.full_name
 
-    return PromptDetailResponse(**response_dict)
+    return PromptDetailResponse(**base_dict)
 
 
 @router.post(
@@ -252,7 +263,9 @@ async def delete_prompt(
 )
 async def track_prompt_copy(
     prompt_id: UUID,
+    request: Request,
     db: DatabaseDep,
+    current_user: OptionalUserDep,
     platform_tag: Optional[str] = Query(None, description="Platform tag context"),
 ) -> MessageResponse:
     """
@@ -263,7 +276,9 @@ async def track_prompt_copy(
 
     Args:
         prompt_id: Prompt UUID
+        request: FastAPI request object (for IP and user-agent)
         db: Database session
+        current_user: Optional authenticated user
         platform_tag: Optional platform tag context
 
     Returns:
@@ -272,12 +287,27 @@ async def track_prompt_copy(
     Raises:
         HTTPException: If prompt not found
     """
-    # Track copy event (user_id will be None for unauthenticated users)
+    # Extract IP address from request
+    # Check for forwarded IP first (behind proxy/load balancer)
+    ip_address = request.headers.get("X-Forwarded-For")
+    if ip_address:
+        # X-Forwarded-For can contain multiple IPs, take the first one
+        ip_address = ip_address.split(",")[0].strip()
+    else:
+        # Fall back to direct client IP
+        ip_address = request.client.host if request.client else None
+    
+    # Extract user-agent from request headers
+    user_agent = request.headers.get("User-Agent")
+    
+    # Track copy event with all available metadata
     PromptService.track_copy(
         db=db,
         prompt_id=prompt_id,
-        user_id=None,  # Could be enhanced to extract from optional auth token
+        user_id=current_user.id if current_user else None,
         platform_tag=platform_tag,
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
     return MessageResponse(message="Copy event tracked successfully")

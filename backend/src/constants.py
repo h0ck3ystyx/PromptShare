@@ -43,3 +43,14 @@ class AnalyticsEventType(str, Enum):
     COPY = "copy"
     SEARCH = "search"
 
+
+class SortOrder(str, Enum):
+    """Sort order enumeration for search and listing."""
+
+    NEWEST = "newest"
+    OLDEST = "oldest"
+    MOST_VIEWED = "most_viewed"
+    LEAST_VIEWED = "least_viewed"
+    HIGHEST_RATED = "highest_rated"
+    LOWEST_RATED = "lowest_rated"
+
