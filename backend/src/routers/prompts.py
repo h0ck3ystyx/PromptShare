@@ -136,12 +136,13 @@ async def get_prompt(
         )
 
     # Build response with author info and category IDs
-    response_dict = PromptDetailResponse.model_validate(prompt).model_dump()
-    response_dict["category_ids"] = [cat.id for cat in prompt.categories]
-    response_dict["author_username"] = prompt.author.username
-    response_dict["author_full_name"] = prompt.author.full_name
+    # First create base PromptResponse, then add author fields
+    base_dict = PromptResponse.model_validate(prompt).model_dump()
+    base_dict["category_ids"] = [cat.id for cat in prompt.categories]
+    base_dict["author_username"] = prompt.author.username
+    base_dict["author_full_name"] = prompt.author.full_name
 
-    return PromptDetailResponse(**response_dict)
+    return PromptDetailResponse(**base_dict)
 
 
 @router.post(

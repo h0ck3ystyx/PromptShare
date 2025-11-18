@@ -190,6 +190,7 @@ class TestPromptService:
             role=UserRole.MEMBER,
         )
         db_session.add_all([author1, author2])
+        db_session.commit()
 
         # Create prompts
         prompt1 = Prompt(

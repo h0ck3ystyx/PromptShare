@@ -75,7 +75,7 @@ class TestSearchRouter:
             "/api/search",
             params={
                 "q": "Cursor",
-                "platform": PlatformTag.CURSOR,
+                "platform": PlatformTag.CURSOR.value,
                 "category": str(category.id),
             },
         )
@@ -115,7 +115,7 @@ class TestSearchRouter:
 
         response = client.get(
             "/api/search",
-            params={"sort_by": SortOrder.MOST_VIEWED},
+            params={"sort_by": SortOrder.MOST_VIEWED.value},
         )
 
         assert response.status_code == status.HTTP_200_OK

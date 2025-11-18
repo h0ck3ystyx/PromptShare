@@ -109,7 +109,7 @@ class TestPromptRouter:
         # Filter by platform
         response = client.get(
             "/api/prompts",
-            params={"platform_tag": PlatformTag.GITHUB_COPILOT},
+            params={"platform_tag": PlatformTag.GITHUB_COPILOT.value},
         )
 
         assert response.status_code == status.HTTP_200_OK

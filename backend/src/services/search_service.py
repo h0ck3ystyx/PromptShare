@@ -52,6 +52,7 @@ class SearchService:
             sql_query = sql_query.filter(Prompt.status == status_filter)
 
         # Text search - using ILIKE for now, can be upgraded to full-text search
+        search_pattern = None
         if query:
             # Search across title, description, content, and use_cases array
             search_pattern = f"%{query}%"
@@ -70,25 +71,13 @@ class SearchService:
                     use_cases_text.ilike(search_pattern),
                 )
             )
-            # When searching, order by relevance (title matches first, then description, then content)
-            # This is a simple relevance - can be enhanced with full-text search later
-            sql_query = sql_query.order_by(
-                # Prioritize title matches
-                (Prompt.title.ilike(search_pattern)).desc(),
-                # Then apply user's preferred sorting
-                *SearchService._get_sort_columns(sort_by)
-            )
-        else:
-            # Apply sorting when not searching
-            sql_query = SearchService._apply_sorting(sql_query, sort_by)
 
         # Apply filters
         if platform_tag:
-            try:
-                sql_query = sql_query.filter(Prompt.platform_tags.contains([platform_tag]))
-            except ValueError:
-                # If invalid platform tag, return empty results
-                sql_query = sql_query.filter(False)
+            # platform_tag is already a PlatformTag enum from the router
+            # PostgreSQL array contains check - check if array contains the platform tag
+            # Use the same approach as prompt_service - pass enum directly
+            sql_query = sql_query.filter(Prompt.platform_tags.contains([platform_tag]))
 
         if category_id:
             sql_query = sql_query.join(Prompt.categories).filter(Category.id == category_id).distinct()
@@ -97,17 +86,33 @@ class SearchService:
             sql_query = sql_query.filter(Prompt.is_featured.is_(True))
 
         # Get total count before pagination
-        total = sql_query.count()
-
-        # Apply pagination
-        if query:
-            # When searching, we already have ordering by relevance
-            # But we need to re-apply sorting after getting results if needed
-            # For now, keep relevance-based ordering for search results
-            prompts = sql_query.offset(skip).limit(limit).all()
+        # For queries with DISTINCT (category joins), count distinct IDs
+        if category_id:
+            # When using distinct with joins, count distinct IDs
+            total = sql_query.with_entities(Prompt.id).distinct().count()
         else:
-            # Apply sorting and pagination
-            prompts = sql_query.offset(skip).limit(limit).all()
+            total = sql_query.count()
+
+        # Apply sorting - do this after filters to avoid DISTINCT/ORDER BY issues
+        if search_pattern:
+            # When searching, order by relevance (title matches first)
+            # But avoid computed expressions in ORDER BY when using DISTINCT
+            if category_id:
+                # With DISTINCT, we can't use computed ORDER BY expressions
+                # Just use the standard sorting
+                sql_query = SearchService._apply_sorting(sql_query, sort_by)
+            else:
+                # Without DISTINCT, we can use computed relevance ordering
+                sql_query = sql_query.order_by(
+                    (Prompt.title.ilike(search_pattern)).desc(),
+                    *SearchService._get_sort_columns(sort_by)
+                )
+        else:
+            # Apply user's preferred sorting
+            sql_query = SearchService._apply_sorting(sql_query, sort_by)
+        
+        # Apply pagination
+        prompts = sql_query.offset(skip).limit(limit).all()
 
         return prompts, total
 
