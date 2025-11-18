@@ -100,16 +100,24 @@ class SearchService:
             if category_id:
                 # With DISTINCT, we can't use computed ORDER BY expressions
                 # Just use the standard sorting
-                sql_query = SearchService._apply_sorting(sql_query, sort_by)
+                sql_query = SearchService._apply_sorting(sql_query, sort_by, db)
             else:
                 # Without DISTINCT, we can use computed relevance ordering
-                sql_query = sql_query.order_by(
-                    (Prompt.title.ilike(search_pattern)).desc(),
-                    *SearchService._get_sort_columns(sort_by)
-                )
+                # For rating sorts, we need to apply the join first
+                if sort_by in (SortOrder.HIGHEST_RATED, SortOrder.LOWEST_RATED):
+                    sql_query = SearchService._apply_sorting(sql_query, sort_by, db)
+                    # Then add title relevance
+                    sql_query = sql_query.order_by(
+                        (Prompt.title.ilike(search_pattern)).desc(),
+                    )
+                else:
+                    sql_query = sql_query.order_by(
+                        (Prompt.title.ilike(search_pattern)).desc(),
+                    )
+                    sql_query = SearchService._apply_sorting(sql_query, sort_by, db)
         else:
             # Apply user's preferred sorting
-            sql_query = SearchService._apply_sorting(sql_query, sort_by)
+            sql_query = SearchService._apply_sorting(sql_query, sort_by, db)
         
         # Apply pagination
         prompts = sql_query.offset(skip).limit(limit).all()
@@ -117,39 +125,65 @@ class SearchService:
         return prompts, total
 
     @staticmethod
-    def _apply_sorting(query, sort_by: SortOrder):
+    def _apply_sorting(query, sort_by: SortOrder, db: Session):
         """Apply sorting to query based on sort order."""
-        sort_columns = SearchService._get_sort_columns(sort_by)
-        return query.order_by(*sort_columns)
-
-    @staticmethod
-    def _get_sort_columns(sort_by: SortOrder):
-        """Get sort columns for a given sort order."""
         if sort_by == SortOrder.NEWEST:
-            return [Prompt.created_at.desc()]
+            return query.order_by(Prompt.created_at.desc())
         elif sort_by == SortOrder.OLDEST:
-            return [Prompt.created_at.asc()]
+            return query.order_by(Prompt.created_at.asc())
         elif sort_by == SortOrder.MOST_VIEWED:
-            return [Prompt.view_count.desc(), Prompt.created_at.desc()]
+            return query.order_by(Prompt.view_count.desc(), Prompt.created_at.desc())
         elif sort_by == SortOrder.LEAST_VIEWED:
-            return [Prompt.view_count.asc(), Prompt.created_at.desc()]
+            return query.order_by(Prompt.view_count.asc(), Prompt.created_at.desc())
         elif sort_by == SortOrder.HIGHEST_RATED:
-            # Ratings not yet implemented in Phase 4
-            # Raise error to prevent misleading behavior
-            raise ValueError(
-                "Sorting by 'highest_rated' is not yet available. "
-                "Ratings will be implemented in Phase 4. "
-                "Please use 'newest', 'oldest', 'most_viewed', or 'least_viewed'."
+            # Sort by average rating (descending), then by created_at
+            from sqlalchemy import func
+            from src.models.rating import Rating
+
+            # Subquery for average ratings using the session from db parameter
+            avg_rating_subq = (
+                db.query(
+                    Rating.prompt_id,
+                    func.avg(Rating.rating).label('avg_rating'),
+                )
+                .group_by(Rating.prompt_id)
+                .subquery()
+            )
+
+            # Left join with ratings subquery and order by average rating
+            query = query.outerjoin(
+                avg_rating_subq,
+                Prompt.id == avg_rating_subq.c.prompt_id,
+            )
+            return query.order_by(
+                func.coalesce(avg_rating_subq.c.avg_rating, 0).desc(),
+                Prompt.created_at.desc(),
             )
         elif sort_by == SortOrder.LOWEST_RATED:
-            # Ratings not yet implemented in Phase 4
-            # Raise error to prevent misleading behavior
-            raise ValueError(
-                "Sorting by 'lowest_rated' is not yet available. "
-                "Ratings will be implemented in Phase 4. "
-                "Please use 'newest', 'oldest', 'most_viewed', or 'least_viewed'."
+            # Sort by average rating (ascending), then by created_at
+            from sqlalchemy import func
+            from src.models.rating import Rating
+
+            # Subquery for average ratings using the session from db parameter
+            avg_rating_subq = (
+                db.query(
+                    Rating.prompt_id,
+                    func.avg(Rating.rating).label('avg_rating'),
+                )
+                .group_by(Rating.prompt_id)
+                .subquery()
+            )
+
+            # Left join with ratings subquery and order by average rating
+            query = query.outerjoin(
+                avg_rating_subq,
+                Prompt.id == avg_rating_subq.c.prompt_id,
+            )
+            return query.order_by(
+                func.coalesce(avg_rating_subq.c.avg_rating, 0).asc(),
+                Prompt.created_at.desc(),
             )
         else:
             # Default to newest
-            return [Prompt.created_at.desc()]
+            return query.order_by(Prompt.created_at.desc())
 

@@ -194,8 +194,17 @@ class PromptService:
         total = query.count()
 
         # Apply sorting
+        from src.constants import SortOrder
         from src.services.search_service import SearchService
-        query = SearchService._apply_sorting(query, sort_by)
+        
+        # Convert string to SortOrder enum if needed
+        if isinstance(sort_by, str):
+            try:
+                sort_by = SortOrder(sort_by)
+            except ValueError:
+                sort_by = SortOrder.NEWEST
+        
+        query = SearchService._apply_sorting(query, sort_by, db)
 
         # Apply pagination
         prompts = query.offset(skip).limit(limit).all()
