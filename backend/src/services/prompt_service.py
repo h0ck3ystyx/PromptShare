@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from src.constants import PromptStatus, UserRole
+from src.constants import PromptStatus, SortOrder, UserRole
 from src.models.category import Category
 from src.models.prompt import Prompt
 from src.models.prompt_copy_event import PromptCopyEvent
@@ -108,6 +108,7 @@ class PromptService:
         search_query: Optional[str] = None,
         title_search: Optional[str] = None,
         content_search: Optional[str] = None,
+        sort_by: SortOrder = SortOrder.NEWEST,
     ) -> tuple[list[Prompt], int]:
         """
         Get list of prompts with filters and pagination.
@@ -124,6 +125,7 @@ class PromptService:
             search_query: Keyword search across title, description, and content
             title_search: Search in title field
             content_search: Search in content field
+            sort_by: Sort order
 
         Returns:
             tuple: (list of prompts, total count)
@@ -182,13 +184,12 @@ class PromptService:
         # Get total count before pagination
         total = query.count()
 
-        # Apply pagination and ordering
-        prompts = (
-            query.order_by(Prompt.created_at.desc())
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+        # Apply sorting
+        from src.services.search_service import SearchService
+        query = SearchService._apply_sorting(query, sort_by)
+
+        # Apply pagination
+        prompts = query.offset(skip).limit(limit).all()
 
         return prompts, total
 

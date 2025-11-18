@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from src.constants import PlatformTag, PromptStatus
+from src.constants import PlatformTag, PromptStatus, SortOrder
 from src.dependencies import CurrentUserDep, DatabaseDep
 from src.schemas.common import MessageResponse, PaginatedResponse
 from src.schemas.prompt import (
@@ -36,6 +36,7 @@ async def list_prompts(
     q: Optional[str] = Query(None, description="Keyword search across title, description, and content"),
     title: Optional[str] = Query(None, description="Search in title field"),
     content: Optional[str] = Query(None, description="Search in content field"),
+    sort_by: SortOrder = Query(SortOrder.NEWEST, description="Sort order"),
 ) -> PaginatedResponse[PromptResponse]:
     """
     Get a paginated list of prompts with optional filters.
@@ -52,6 +53,7 @@ async def list_prompts(
         q: Keyword search across title, description, and content
         title: Search in title field
         content: Search in content field
+        sort_by: Sort order (newest, oldest, most_viewed, least_viewed, highest_rated, lowest_rated)
 
     Returns:
         PaginatedResponse: Paginated list of prompts
@@ -69,6 +71,7 @@ async def list_prompts(
         search_query=q,
         title_search=title,
         content_search=content,
+        sort_by=sort_by,
     )
 
     # Convert to response format with category IDs
