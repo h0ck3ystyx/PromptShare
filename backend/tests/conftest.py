@@ -45,11 +45,19 @@ def _start_test_database() -> None:
     if _check_database_connection():
         return  # Database is already available
     
+    # Check if we're in CI environment - fail fast instead of skipping
+    is_ci = os.getenv("CI") is not None or os.getenv("GITHUB_ACTIONS") is not None
+    
     # Get project root (two levels up from backend/tests)
     project_root = Path(__file__).parent.parent.parent
     compose_file = project_root / "docker-compose.test.yml"
     
     if not compose_file.exists():
+        if is_ci:
+            pytest.fail(
+                "docker-compose.test.yml not found and database not available. "
+                "CI builds require a test database."
+            )
         pytest.skip("docker-compose.test.yml not found and database not available")
     
     # Start docker-compose
@@ -70,8 +78,18 @@ def _start_test_database() -> None:
             time.sleep(1)
             elapsed += 1
         
+        if is_ci:
+            pytest.fail(
+                "Test database failed to start within 30 seconds. "
+                "CI builds require a working test database."
+            )
         pytest.skip("Test database failed to start within 30 seconds")
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        if is_ci:
+            pytest.fail(
+                f"docker-compose not available or failed to start test database: {e}. "
+                "CI builds require Docker and docker-compose."
+            )
         pytest.skip("docker-compose not available or failed to start test database")
 
 
@@ -79,10 +97,18 @@ def _start_test_database() -> None:
 @pytest.fixture(scope="session", autouse=True)
 def ensure_test_database():
     """Ensure test database is running before tests."""
+    # Check if we're in CI environment - fail fast instead of skipping
+    is_ci = os.getenv("CI") is not None or os.getenv("GITHUB_ACTIONS") is not None
+    
     # Only auto-start if using default test database URL
     if TEST_DATABASE_URL == "postgresql+psycopg://test_user:test_password@localhost:5433/test_promptshare":
         _start_test_database()
     elif not _check_database_connection():
+        if is_ci:
+            pytest.fail(
+                f"Test database not available at {TEST_DATABASE_URL}. "
+                "CI builds require a working test database."
+            )
         pytest.skip(f"Test database not available at {TEST_DATABASE_URL}")
 
 

@@ -36,6 +36,10 @@ class PromptCreate(PromptBase):
         default_factory=list,
         description="List of category IDs to associate with this prompt",
     )
+    is_featured: bool = Field(
+        default=False,
+        description="Whether this prompt is featured (admin/moderator only)",
+    )
 
 
 class PromptUpdate(BaseModel):
@@ -49,6 +53,7 @@ class PromptUpdate(BaseModel):
     usage_tips: str | None = None
     status: PromptStatus | None = None
     category_ids: list[UUID] | None = None
+    is_featured: bool | None = Field(None, description="Whether this prompt is featured (admin/moderator only)")
 
 
 class PromptResponse(PromptBase):

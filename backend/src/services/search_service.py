@@ -53,13 +53,21 @@ class SearchService:
 
         # Text search - using ILIKE for now, can be upgraded to full-text search
         if query:
-            # Search across title, description, and content
+            # Search across title, description, content, and use_cases array
             search_pattern = f"%{query}%"
+            from sqlalchemy import func
+            
+            # For PostgreSQL arrays, we need to convert to text and search
+            # array_to_string converts array to text, then we can use ILIKE
+            use_cases_text = func.array_to_string(Prompt.use_cases, " ")
+            
             sql_query = sql_query.filter(
                 or_(
                     Prompt.title.ilike(search_pattern),
                     Prompt.description.ilike(search_pattern),
                     Prompt.content.ilike(search_pattern),
+                    # Search in use_cases array by converting to text
+                    use_cases_text.ilike(search_pattern),
                 )
             )
             # When searching, order by relevance (title matches first, then description, then content)
@@ -121,13 +129,21 @@ class SearchService:
         elif sort_by == SortOrder.LEAST_VIEWED:
             return [Prompt.view_count.asc(), Prompt.created_at.desc()]
         elif sort_by == SortOrder.HIGHEST_RATED:
-            # TODO: Implement when ratings are added in Phase 4
-            # For now, fall back to newest
-            return [Prompt.created_at.desc()]
+            # Ratings not yet implemented in Phase 4
+            # Raise error to prevent misleading behavior
+            raise ValueError(
+                "Sorting by 'highest_rated' is not yet available. "
+                "Ratings will be implemented in Phase 4. "
+                "Please use 'newest', 'oldest', 'most_viewed', or 'least_viewed'."
+            )
         elif sort_by == SortOrder.LOWEST_RATED:
-            # TODO: Implement when ratings are added in Phase 4
-            # For now, fall back to newest
-            return [Prompt.created_at.desc()]
+            # Ratings not yet implemented in Phase 4
+            # Raise error to prevent misleading behavior
+            raise ValueError(
+                "Sorting by 'lowest_rated' is not yet available. "
+                "Ratings will be implemented in Phase 4. "
+                "Please use 'newest', 'oldest', 'most_viewed', or 'least_viewed'."
+            )
         else:
             # Default to newest
             return [Prompt.created_at.desc()]

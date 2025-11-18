@@ -3,7 +3,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, status
 
 from src.constants import PlatformTag, PromptStatus, SortOrder
 from src.dependencies import DatabaseDep
@@ -48,17 +48,24 @@ async def search_prompts(
         PaginatedResponse: Paginated list of matching prompts
     """
     skip = (page - 1) * page_size
-    prompts, total = SearchService.search_prompts(
-        db=db,
-        query=q,
-        platform_tag=platform,
-        category_id=category,
-        status_filter=status,
-        featured_only=featured,
-        sort_by=sort_by,
-        skip=skip,
-        limit=page_size,
-    )
+    try:
+        prompts, total = SearchService.search_prompts(
+            db=db,
+            query=q,
+            platform_tag=platform,
+            category_id=category,
+            status_filter=status,
+            featured_only=featured,
+            sort_by=sort_by,
+            skip=skip,
+            limit=page_size,
+        )
+    except ValueError as e:
+        # Handle unsupported sort orders (e.g., highest_rated before Phase 4)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
     # Convert to response format with category IDs
     prompt_responses = []
