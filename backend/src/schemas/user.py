@@ -57,3 +57,28 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
+class UserRoleUpdate(BaseModel):
+    """Schema for updating user role."""
+
+    role: UserRole
+
+
+class UserStatusUpdate(BaseModel):
+    """Schema for updating user status."""
+
+    is_active: bool
+
+
+class UserStats(BaseModel):
+    """Schema for user statistics."""
+
+    user_id: UUID
+    prompt_count: int
+    comment_count: int
+    rating_count: int
+    upvote_count: int
+    total_prompt_views: int
+
+    model_config = ConfigDict(from_attributes=True)
+

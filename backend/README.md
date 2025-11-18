@@ -113,7 +113,51 @@ alembic downgrade -1
 ### Authentication
 - `POST /api/auth/login` - Login with LDAP/AD credentials
 - `GET /api/auth/me` - Get current user information
-- `POST /api/auth/logout` - Logout
+
+### Prompts
+- `GET /api/prompts` - List prompts (with filters, pagination, sorting)
+- `GET /api/prompts/{id}` - Get prompt details
+- `POST /api/prompts` - Create prompt (authenticated)
+- `PUT /api/prompts/{id}` - Update prompt (author or admin)
+- `DELETE /api/prompts/{id}` - Delete prompt (author or admin)
+- `POST /api/prompts/{id}/copy` - Track copy event
+
+### Search
+- `GET /api/search` - Search prompts (full-text search with filters)
+
+### Comments
+- `GET /api/prompts/{id}/comments` - Get comments (supports tree mode)
+- `POST /api/prompts/{id}/comments` - Add comment
+- `PUT /api/prompts/{id}/comments/{comment_id}` - Update comment
+- `DELETE /api/prompts/{id}/comments/{comment_id}` - Delete comment
+
+### Ratings
+- `POST /api/prompts/{id}/ratings` - Create or update rating
+- `GET /api/prompts/{id}/ratings/me` - Get current user's rating
+- `GET /api/prompts/{id}/ratings/summary` - Get rating summary
+- `DELETE /api/prompts/{id}/ratings` - Delete rating
+
+### Upvotes
+- `POST /api/prompts/{id}/upvotes` - Toggle upvote
+- `GET /api/prompts/{id}/upvotes/summary` - Get upvote summary
+
+### Users (Admin/Moderator)
+- `GET /api/users` - List users (admin only, paginated)
+- `GET /api/users/me` - Get current user profile
+- `PUT /api/users/me` - Update own profile
+- `GET /api/users/{id}` - Get user profile
+- `PUT /api/users/{id}` - Update user (own or admin)
+- `PUT /api/users/{id}/role` - Update user role (admin only)
+- `PUT /api/users/{id}/status` - Activate/deactivate user (admin only)
+- `GET /api/users/{id}/stats` - Get user statistics (own or admin/moderator)
+
+### Categories
+- `GET /api/categories` - List categories
+- `GET /api/categories/{id}` - Get category by ID
+- `GET /api/categories/slug/{slug}` - Get category by slug
+- `POST /api/categories` - Create category (admin/moderator)
+- `PUT /api/categories/{id}` - Update category (admin)
+- `DELETE /api/categories/{id}` - Delete category (admin)
 
 ## Environment Variables
 

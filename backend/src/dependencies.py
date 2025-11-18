@@ -109,3 +109,78 @@ def get_optional_user(
 # Type alias for optional user dependency
 OptionalUserDep = Annotated[User | None, Depends(get_optional_user)]
 
+
+def require_admin(current_user: CurrentUserDep) -> User:
+    """
+    Require admin role for endpoint access.
+
+    Args:
+        current_user: Current authenticated user
+
+    Returns:
+        User: Current user if admin
+
+    Raises:
+        HTTPException: If user is not an admin
+    """
+    from src.constants import UserRole
+
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user
+
+
+def require_moderator(current_user: CurrentUserDep) -> User:
+    """
+    Require moderator role for endpoint access.
+
+    Args:
+        current_user: Current authenticated user
+
+    Returns:
+        User: Current user if moderator
+
+    Raises:
+        HTTPException: If user is not a moderator
+    """
+    from src.constants import UserRole
+
+    if current_user.role != UserRole.MODERATOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Moderator access required",
+        )
+    return current_user
+
+
+def require_admin_or_moderator(current_user: CurrentUserDep) -> User:
+    """
+    Require admin or moderator role for endpoint access.
+
+    Args:
+        current_user: Current authenticated user
+
+    Returns:
+        User: Current user if admin or moderator
+
+    Raises:
+        HTTPException: If user is not an admin or moderator
+    """
+    from src.constants import UserRole
+
+    if current_user.role not in (UserRole.ADMIN, UserRole.MODERATOR):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin or moderator access required",
+        )
+    return current_user
+
+
+# Type aliases for permission dependencies
+AdminDep = Annotated[User, Depends(require_admin)]
+ModeratorDep = Annotated[User, Depends(require_moderator)]
+AdminOrModeratorDep = Annotated[User, Depends(require_admin_or_moderator)]
+

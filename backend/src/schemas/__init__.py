@@ -35,6 +35,9 @@ from src.schemas.user import (
     UserCreate,
     UserLogin,
     UserResponse,
+    UserRoleUpdate,
+    UserStats,
+    UserStatusUpdate,
     UserUpdate,
 )
 
@@ -74,6 +77,9 @@ __all__ = [
     "UserCreate",
     "UserLogin",
     "UserResponse",
+    "UserRoleUpdate",
+    "UserStats",
+    "UserStatusUpdate",
     "UserUpdate",
 ]
 

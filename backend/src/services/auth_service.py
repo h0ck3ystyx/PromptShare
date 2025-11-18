@@ -106,10 +106,12 @@ class AuthService:
                 is_active=True,
             )
             db.add(user)
+            # Set last_login for new users
+            user.last_login = datetime.now(UTC)
             db.commit()
             db.refresh(user)
         else:
-            # Update last login
+            # Update last login timestamp for existing users
             user.last_login = datetime.now(UTC)
             db.commit()
             db.refresh(user)
