@@ -1,7 +1,7 @@
 """Authentication service for LDAP/AD integration."""
 
 import ldap
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
@@ -110,7 +110,7 @@ class AuthService:
             db.refresh(user)
         else:
             # Update last login
-            user.last_login = datetime.utcnow()
+            user.last_login = datetime.now(UTC)
             db.commit()
             db.refresh(user)
 
@@ -127,7 +127,7 @@ class AuthService:
         Returns:
             str: JWT access token
         """
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
         to_encode = {"sub": str(user_id), "exp": expire}
         encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
         return encoded_jwt

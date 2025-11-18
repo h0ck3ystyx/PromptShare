@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.constants import PlatformTag, PromptStatus
 
@@ -67,10 +67,7 @@ class PromptResponse(PromptBase):
     is_featured: bool
     category_ids: list[UUID] = Field(default_factory=list)
 
-    class Config:
-        """Pydantic config."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PromptDetailResponse(PromptResponse):
@@ -79,10 +76,7 @@ class PromptDetailResponse(PromptResponse):
     author_username: str
     author_full_name: str
 
-    class Config:
-        """Pydantic config."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PromptCopyRequest(BaseModel):

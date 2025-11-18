@@ -1,7 +1,7 @@
 """Prompt model."""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -38,8 +38,8 @@ class Prompt(Base):
     use_cases = Column(ARRAY(Text), nullable=True, default=[])
     usage_tips = Column(Text, nullable=True)
     author_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     view_count = Column(Integer, nullable=False, default=0)
     is_featured = Column(Boolean, nullable=False, default=False)
     status = Column(Enum(PromptStatus), nullable=False, default=PromptStatus.DRAFT)

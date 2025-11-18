@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from src.constants import UserRole
 
@@ -41,10 +41,7 @@ class UserResponse(UserBase):
     last_login: datetime | None
     is_active: bool
 
-    class Config:
-        """Pydantic config."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserLogin(BaseModel):

@@ -1,7 +1,7 @@
 """User model."""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, String
@@ -24,7 +24,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     full_name = Column(String(255), nullable=False)
     role = Column(Enum(UserRole), nullable=False, default=UserRole.MEMBER)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
     last_login = Column(DateTime, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
 
