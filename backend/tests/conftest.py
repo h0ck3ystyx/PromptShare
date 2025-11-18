@@ -1,9 +1,13 @@
 """Pytest configuration and fixtures."""
 
 import os
+import subprocess
+import time
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from src.database import Base, get_db
@@ -19,6 +23,68 @@ TEST_DATABASE_URL = os.getenv(
 # Ensure database URL uses psycopg driver for psycopg3
 if TEST_DATABASE_URL.startswith("postgresql://") and "+psycopg" not in TEST_DATABASE_URL:
     TEST_DATABASE_URL = TEST_DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+
+
+def _check_database_connection() -> bool:
+    """Check if test database is accessible."""
+    try:
+        test_engine = create_engine(
+            TEST_DATABASE_URL,
+            pool_pre_ping=True,
+            connect_args={"connect_timeout": 2},
+        )
+        with test_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False
+
+
+def _start_test_database() -> None:
+    """Start test database using docker-compose if not already running."""
+    if _check_database_connection():
+        return  # Database is already available
+    
+    # Get project root (two levels up from backend/tests)
+    project_root = Path(__file__).parent.parent.parent
+    compose_file = project_root / "docker-compose.test.yml"
+    
+    if not compose_file.exists():
+        pytest.skip("docker-compose.test.yml not found and database not available")
+    
+    # Start docker-compose
+    try:
+        subprocess.run(
+            ["docker-compose", "-f", str(compose_file), "up", "-d"],
+            cwd=project_root,
+            check=True,
+            capture_output=True,
+        )
+        
+        # Wait for database to be ready (max 30 seconds)
+        max_wait = 30
+        elapsed = 0
+        while elapsed < max_wait:
+            if _check_database_connection():
+                return
+            time.sleep(1)
+            elapsed += 1
+        
+        pytest.skip("Test database failed to start within 30 seconds")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pytest.skip("docker-compose not available or failed to start test database")
+
+
+# Auto-start test database before any tests run
+@pytest.fixture(scope="session", autouse=True)
+def ensure_test_database():
+    """Ensure test database is running before tests."""
+    # Only auto-start if using default test database URL
+    if TEST_DATABASE_URL == "postgresql+psycopg://test_user:test_password@localhost:5433/test_promptshare":
+        _start_test_database()
+    elif not _check_database_connection():
+        pytest.skip(f"Test database not available at {TEST_DATABASE_URL}")
+
 
 engine = create_engine(
     TEST_DATABASE_URL,

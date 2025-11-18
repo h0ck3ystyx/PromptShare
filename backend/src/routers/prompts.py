@@ -1,0 +1,284 @@
+"""Prompt router endpoints."""
+
+from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from src.constants import PlatformTag, PromptStatus
+from src.dependencies import CurrentUserDep, DatabaseDep
+from src.schemas.common import MessageResponse, PaginatedResponse
+from src.schemas.prompt import (
+    PromptCreate,
+    PromptDetailResponse,
+    PromptResponse,
+    PromptUpdate,
+)
+from src.services.prompt_service import PromptService
+
+router = APIRouter(prefix="/prompts", tags=["prompts"])
+
+
+@router.get(
+    "",
+    response_model=PaginatedResponse[PromptResponse],
+    summary="List prompts with filters and pagination",
+)
+async def list_prompts(
+    db: DatabaseDep,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    status_filter: Optional[PromptStatus] = Query(None, description="Filter by status"),
+    platform_tag: Optional[PlatformTag] = Query(None, description="Filter by platform tag"),
+    category_id: Optional[UUID] = Query(None, description="Filter by category ID"),
+    author_id: Optional[UUID] = Query(None, description="Filter by author ID"),
+    featured_only: bool = Query(False, description="Return only featured prompts"),
+    q: Optional[str] = Query(None, description="Keyword search across title, description, and content"),
+    title: Optional[str] = Query(None, description="Search in title field"),
+    content: Optional[str] = Query(None, description="Search in content field"),
+) -> PaginatedResponse[PromptResponse]:
+    """
+    Get a paginated list of prompts with optional filters.
+
+    Args:
+        db: Database session
+        page: Page number (1-indexed)
+        page_size: Number of items per page
+        status_filter: Filter by prompt status
+        platform_tag: Filter by platform tag
+        category_id: Filter by category ID
+        author_id: Filter by author ID
+        featured_only: Return only featured prompts
+        q: Keyword search across title, description, and content
+        title: Search in title field
+        content: Search in content field
+
+    Returns:
+        PaginatedResponse: Paginated list of prompts
+    """
+    skip = (page - 1) * page_size
+    prompts, total = PromptService.get_prompts(
+        db=db,
+        skip=skip,
+        limit=page_size,
+        status_filter=status_filter,
+        platform_tag=platform_tag.value if platform_tag else None,
+        category_id=category_id,
+        author_id=author_id,
+        featured_only=featured_only,
+        search_query=q,
+        title_search=title,
+        content_search=content,
+    )
+
+    # Convert to response format with category IDs
+    prompt_responses = []
+    for prompt in prompts:
+        prompt_dict = PromptResponse.model_validate(prompt).model_dump()
+        prompt_dict["category_ids"] = [cat.id for cat in prompt.categories]
+        prompt_responses.append(PromptResponse(**prompt_dict))
+
+    total_pages = (total + page_size - 1) // page_size
+
+    return PaginatedResponse(
+        items=prompt_responses,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+
+
+@router.get(
+    "/{prompt_id}",
+    response_model=PromptDetailResponse,
+    summary="Get prompt details by ID",
+)
+async def get_prompt(
+    prompt_id: UUID,
+    db: DatabaseDep,
+    increment_view: bool = Query(True, description="Increment view count"),
+) -> PromptDetailResponse:
+    """
+    Get detailed information about a specific prompt.
+
+    Args:
+        prompt_id: Prompt UUID
+        db: Database session
+        increment_view: Whether to increment the view count
+
+    Returns:
+        PromptDetailResponse: Detailed prompt information with author info
+
+    Raises:
+        HTTPException: If prompt not found
+    """
+    prompt = PromptService.get_prompt_by_id(
+        db=db,
+        prompt_id=prompt_id,
+        increment_view=increment_view,
+    )
+
+    if not prompt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prompt not found",
+        )
+
+    # Build response with author info and category IDs
+    response_dict = PromptDetailResponse.model_validate(prompt).model_dump()
+    response_dict["category_ids"] = [cat.id for cat in prompt.categories]
+    response_dict["author_username"] = prompt.author.username
+    response_dict["author_full_name"] = prompt.author.full_name
+
+    return PromptDetailResponse(**response_dict)
+
+
+@router.post(
+    "",
+    response_model=PromptResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new prompt",
+)
+async def create_prompt(
+    prompt_data: PromptCreate,
+    db: DatabaseDep,
+    current_user: CurrentUserDep,
+) -> PromptResponse:
+    """
+    Create a new prompt.
+
+    Args:
+        prompt_data: Prompt creation data
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        PromptResponse: Created prompt
+
+    Raises:
+        HTTPException: If validation fails or categories not found
+    """
+    prompt = PromptService.create_prompt(
+        db=db,
+        prompt_data=prompt_data,
+        author_id=current_user.id,
+    )
+
+    # Build response with category IDs
+    response_dict = PromptResponse.model_validate(prompt).model_dump()
+    response_dict["category_ids"] = [cat.id for cat in prompt.categories]
+
+    return PromptResponse(**response_dict)
+
+
+@router.put(
+    "/{prompt_id}",
+    response_model=PromptResponse,
+    summary="Update an existing prompt",
+)
+async def update_prompt(
+    prompt_id: UUID,
+    prompt_data: PromptUpdate,
+    db: DatabaseDep,
+    current_user: CurrentUserDep,
+) -> PromptResponse:
+    """
+    Update an existing prompt (author or admin only).
+
+    Args:
+        prompt_id: Prompt UUID
+        prompt_data: Prompt update data
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        PromptResponse: Updated prompt
+
+    Raises:
+        HTTPException: If prompt not found or user lacks permission
+    """
+    prompt = PromptService.update_prompt(
+        db=db,
+        prompt_id=prompt_id,
+        prompt_data=prompt_data,
+        user=current_user,
+    )
+
+    # Build response with category IDs
+    response_dict = PromptResponse.model_validate(prompt).model_dump()
+    response_dict["category_ids"] = [cat.id for cat in prompt.categories]
+
+    return PromptResponse(**response_dict)
+
+
+@router.delete(
+    "/{prompt_id}",
+    response_model=MessageResponse,
+    summary="Delete a prompt",
+)
+async def delete_prompt(
+    prompt_id: UUID,
+    db: DatabaseDep,
+    current_user: CurrentUserDep,
+) -> MessageResponse:
+    """
+    Delete a prompt (author or admin only).
+
+    Args:
+        prompt_id: Prompt UUID
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        MessageResponse: Success message
+
+    Raises:
+        HTTPException: If prompt not found or user lacks permission
+    """
+    PromptService.delete_prompt(
+        db=db,
+        prompt_id=prompt_id,
+        user=current_user,
+    )
+
+    return MessageResponse(message="Prompt deleted successfully")
+
+
+@router.post(
+    "/{prompt_id}/copy",
+    response_model=MessageResponse,
+    summary="Track prompt copy event",
+)
+async def track_prompt_copy(
+    prompt_id: UUID,
+    db: DatabaseDep,
+    platform_tag: Optional[str] = Query(None, description="Platform tag context"),
+) -> MessageResponse:
+    """
+    Track a prompt copy event for analytics.
+    
+    Note: This endpoint is public (no authentication required) to allow
+    tracking of copy events from unauthenticated users.
+
+    Args:
+        prompt_id: Prompt UUID
+        db: Database session
+        platform_tag: Optional platform tag context
+
+    Returns:
+        MessageResponse: Success message
+
+    Raises:
+        HTTPException: If prompt not found
+    """
+    # Track copy event (user_id will be None for unauthenticated users)
+    PromptService.track_copy(
+        db=db,
+        prompt_id=prompt_id,
+        user_id=None,  # Could be enhanced to extract from optional auth token
+        platform_tag=platform_tag,
+    )
+
+    return MessageResponse(message="Copy event tracked successfully")
+
