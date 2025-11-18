@@ -4,9 +4,10 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from src.constants import PromptStatus, UserRole
+from src.constants import PlatformTag, PromptStatus, UserRole
 from src.models.category import Category
 from src.models.prompt import Prompt
 from src.models.prompt_copy_event import PromptCopyEvent
@@ -141,7 +142,6 @@ class PromptService:
             # PostgreSQL array contains check - check if array contains the platform tag
             # SQLAlchemy's contains uses PostgreSQL's @> operator for array containment
             # We need to pass a list with the enum value (platform_tag is already a string from enum.value)
-            from src.constants import PlatformTag
             # Convert string back to enum for proper type matching
             try:
                 platform_enum = PlatformTag(platform_tag)
@@ -157,11 +157,9 @@ class PromptService:
             query = query.filter(Prompt.author_id == author_id)
 
         if featured_only:
-            query = query.filter(Prompt.is_featured == True)
+            query = query.filter(Prompt.is_featured.is_(True))
 
         # Text search filters
-        from sqlalchemy import or_
-        
         if search_query:
             # Search across title, description, and content
             search_pattern = f"%{search_query}%"

@@ -3,7 +3,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from src.constants import PlatformTag, PromptStatus
 from src.dependencies import CurrentUserDep, DatabaseDep

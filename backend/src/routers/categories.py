@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from src.dependencies import CurrentUserDep, DatabaseDep
 from src.schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate

@@ -4,6 +4,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from src.constants import UserRole
@@ -46,7 +47,7 @@ class CategoryService:
         existing = (
             db.query(Category)
             .filter(
-                (Category.name == category_data.name) | (Category.slug == category_data.slug)
+                or_(Category.name == category_data.name, Category.slug == category_data.slug)
             )
             .first()
         )
@@ -171,8 +172,10 @@ class CategoryService:
             existing = (
                 db.query(Category)
                 .filter(
-                    (Category.id != category_id)
-                    & ((Category.name == name) | (Category.slug == slug))
+                    and_(
+                        Category.id != category_id,
+                        or_(Category.name == name, Category.slug == slug),
+                    )
                 )
                 .first()
             )

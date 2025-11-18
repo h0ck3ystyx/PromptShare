@@ -1,6 +1,5 @@
 """Tests for category router endpoints."""
 
-import pytest
 from fastapi import status
 from uuid import uuid4
 
