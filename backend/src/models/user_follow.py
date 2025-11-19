@@ -22,7 +22,7 @@ class UserFollow(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=True, index=True)
+    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False, index=True)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
