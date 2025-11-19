@@ -130,8 +130,8 @@ docker-compose -f docker-compose.test.yml down
 - [x] Phase 3: Search and Discovery
 - [x] Phase 4: Collaboration Features (Comments, Ratings, Upvotes)
 - [x] Phase 5: User Management and Permissions
-- [ ] Phase 6: Notifications and Following
-- [ ] Phase 7: Analytics and Reporting
+- [x] Phase 6: Notifications and Following
+- [x] Phase 7: Analytics and Reporting
 - [ ] Phase 8: Onboarding and Documentation
 - [ ] Phase 9: Frontend Integration
 - [ ] Phase 10: Testing and Polish

@@ -5,10 +5,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from src.constants import PlatformTag, PromptStatus, SortOrder
-from src.dependencies import DatabaseDep
+from src.constants import AnalyticsEventType, PlatformTag, PromptStatus, SortOrder
+from src.dependencies import DatabaseDep, OptionalUserDep
 from src.schemas.common import PaginatedResponse
 from src.schemas.prompt import PromptResponse
+from src.services.analytics_service import AnalyticsService
 from src.services.search_service import SearchService
 
 router = APIRouter(prefix="/search", tags=["search"])
@@ -29,6 +30,7 @@ async def search_prompts(
     sort_by: SortOrder = Query(SortOrder.NEWEST, description="Sort order"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    current_user: OptionalUserDep = None,
 ) -> PaginatedResponse[PromptResponse]:
     """
     Search prompts with full-text search, filters, and sorting.
@@ -75,6 +77,24 @@ async def search_prompts(
         prompt_responses.append(PromptResponse(**prompt_dict))
 
     total_pages = (total + page_size - 1) // page_size
+
+    # Track search event for analytics (only if there's a query, best-effort)
+    if q:
+        AnalyticsService.track_event(
+            db=db,
+            event_type=AnalyticsEventType.SEARCH,
+            prompt_id=None,
+            user_id=current_user.id if current_user else None,
+            metadata={
+                "query": q,
+                "platform": platform.value if platform else None,
+                "category_id": str(category) if category else None,
+                "status": status.value if status else None,
+                "featured": featured,
+                "sort_by": sort_by.value,
+                "endpoint": "/api/search",  # Track which endpoint was used
+            },
+        )
 
     return PaginatedResponse(
         items=prompt_responses,

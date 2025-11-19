@@ -1,5 +1,6 @@
 """Database models."""
 
+from src.models.analytics_event import AnalyticsEvent
 from src.models.category import Category
 from src.models.comment import Comment
 from src.models.notification import Notification
@@ -21,4 +22,5 @@ __all__ = [
     "Upvote",
     "UserFollow",
     "Notification",
+    "AnalyticsEvent",
 ]
