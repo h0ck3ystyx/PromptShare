@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from src.database import Base
-from src.models.constants import AnalyticsEventType
+from src.constants import AnalyticsEventType
 
 if TYPE_CHECKING:
     from src.models.prompt import Prompt
