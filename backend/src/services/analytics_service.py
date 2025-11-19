@@ -8,7 +8,7 @@ from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
 from src.models.analytics_event import AnalyticsEvent
-from src.models.constants import AnalyticsEventType
+from src.constants import AnalyticsEventType
 from src.models.prompt import Prompt
 from src.models.prompt_copy_event import PromptCopyEvent
 
