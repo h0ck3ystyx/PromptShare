@@ -9,9 +9,12 @@ from src.routers import (
     analytics,
     auth,
     categories,
+    collections,
     comments,
+    faqs,
     follows,
     notifications,
+    onboarding,
     prompts,
     ratings,
     search,
@@ -21,7 +24,25 @@ from src.routers import (
 
 app = FastAPI(
     title=settings.app_name,
-    description="Internal prompt-sharing web application",
+    description=(
+        "Internal prompt-sharing web application for employees to discover, submit, "
+        "and collaborate on prompts for AI tools (GitHub Copilot, O365 Copilot, Cursor, Claude).\n\n"
+        "## Features\n\n"
+        "- **Prompt Management**: Create, update, and browse prompts with categories and platform tags\n"
+        "- **Search & Discovery**: Full-text search with filters for platform, category, and keywords\n"
+        "- **Collaboration**: Comments, ratings, and upvotes on prompts\n"
+        "- **Collections**: Curated sets of prompts organized by theme or use case\n"
+        "- **Notifications**: Get notified about new prompts in categories you follow\n"
+        "- **Analytics**: Track usage statistics (views, copies, searches) - Admin only\n"
+        "- **Onboarding**: Get started guides, best practices, and FAQs\n\n"
+        "## Authentication\n\n"
+        "All endpoints except `/api/onboarding` and `/api/faqs` (read-only) require authentication via LDAP/Active Directory.\n\n"
+        "## Documentation\n\n"
+        "- Interactive API docs: `/api/docs` (Swagger UI)\n"
+        "- Alternative docs: `/api/redoc` (ReDoc)\n"
+        "- Onboarding materials: `/api/onboarding`\n"
+        "- Best practices: `/api/onboarding/best-practices`\n"
+    ),
     version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -51,6 +72,9 @@ app.include_router(users.router, prefix="/api")
 app.include_router(follows.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
+app.include_router(collections.router, prefix="/api")
+app.include_router(faqs.router, prefix="/api")
+app.include_router(onboarding.router, prefix="/api")
 
 
 @app.get("/", summary="Root endpoint")
