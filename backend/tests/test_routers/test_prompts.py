@@ -4,7 +4,8 @@ import pytest
 from fastapi import status
 from uuid import uuid4
 
-from src.constants import PlatformTag, PromptStatus, UserRole
+from src.constants import AnalyticsEventType, PlatformTag, PromptStatus, UserRole
+from src.models.analytics_event import AnalyticsEvent
 from src.models.category import Category
 from src.models.prompt import Prompt
 from src.models.user import User
@@ -75,6 +76,42 @@ class TestPromptRouter:
         data = response.json()
         assert data["total"] == 2
         assert len(data["items"]) == 2
+
+    def test_list_prompts_with_search_tracks_analytics(self, client, db_session):
+        """Test that searching via /api/prompts tracks analytics events."""
+        # Create author
+        author = User(
+            username="testauthor",
+            email="testauthor@company.com",
+            full_name="Test Author",
+            role=UserRole.MEMBER,
+        )
+        prompt = Prompt(
+            title="Python Guide",
+            content="Python programming content",
+            platform_tags=[PlatformTag.GITHUB_COPILOT],
+            author_id=author.id,
+            status=PromptStatus.PUBLISHED,
+        )
+        db_session.add_all([author, prompt])
+        db_session.commit()
+
+        response = client.get("/api/prompts", params={"q": "Python"})
+
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Verify search analytics event was created
+        search_event = (
+            db_session.query(AnalyticsEvent)
+            .filter(
+                AnalyticsEvent.event_type == AnalyticsEventType.SEARCH,
+            )
+            .first()
+        )
+        assert search_event is not None
+        assert search_event.event_metadata is not None
+        assert search_event.event_metadata.get("query") == "Python"
+        assert search_event.event_metadata.get("endpoint") == "/api/prompts"
 
     def test_list_prompts_with_filters(self, client, db_session):
         """Test listing prompts with filters."""
@@ -147,6 +184,17 @@ class TestPromptRouter:
         assert data["id"] == str(prompt.id)
         assert data["title"] == "Test Prompt"
         assert data["author_username"] == "testauthor"
+
+        # Verify analytics event was created
+        view_event = (
+            db_session.query(AnalyticsEvent)
+            .filter(
+                AnalyticsEvent.prompt_id == prompt.id,
+                AnalyticsEvent.event_type == AnalyticsEventType.VIEW,
+            )
+            .first()
+        )
+        assert view_event is not None
 
     def test_get_prompt_not_found(self, client, db_session):
         """Test getting a non-existent prompt."""
@@ -350,6 +398,17 @@ class TestPromptRouter:
 
         assert response.status_code == status.HTTP_200_OK
         assert "tracked successfully" in response.json()["message"].lower()
+
+        # Verify analytics event was created
+        copy_event = (
+            db_session.query(AnalyticsEvent)
+            .filter(
+                AnalyticsEvent.prompt_id == prompt.id,
+                AnalyticsEvent.event_type == AnalyticsEventType.COPY,
+            )
+            .first()
+        )
+        assert copy_event is not None
 
     def test_track_prompt_copy_not_found(self, client, db_session):
         """Test tracking copy for non-existent prompt."""

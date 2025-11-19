@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
-from src.constants import PlatformTag, PromptStatus, SortOrder
+from src.constants import AnalyticsEventType, PlatformTag, PromptStatus, SortOrder
 from src.dependencies import CurrentUserDep, DatabaseDep, OptionalUserDep
 from src.schemas.common import MessageResponse, PaginatedResponse
 from src.schemas.prompt import (
@@ -14,6 +14,7 @@ from src.schemas.prompt import (
     PromptResponse,
     PromptUpdate,
 )
+from src.services.analytics_service import AnalyticsService
 from src.services.prompt_service import PromptService
 
 router = APIRouter(prefix="/prompts", tags=["prompts"])
@@ -37,6 +38,7 @@ async def list_prompts(
     title: Optional[str] = Query(None, description="Search in title field"),
     content: Optional[str] = Query(None, description="Search in content field"),
     sort_by: SortOrder = Query(SortOrder.NEWEST, description="Sort order"),
+    current_user: OptionalUserDep = None,
 ) -> PaginatedResponse[PromptResponse]:
     """
     Get a paginated list of prompts with optional filters.
@@ -81,6 +83,28 @@ async def list_prompts(
             detail=str(e),
         )
 
+    # Track search event for analytics if search parameters are used
+    # This ensures search analytics are captured even when using /api/prompts
+    has_search_params = q or title or content
+    if has_search_params:
+        AnalyticsService.track_event(
+            db=db,
+            event_type=AnalyticsEventType.SEARCH,
+            prompt_id=None,
+            user_id=current_user.id if current_user else None,
+            metadata={
+                "query": q,
+                "title": title,
+                "content": content,
+                "platform_tag": platform_tag.value if platform_tag else None,
+                "category_id": str(category_id) if category_id else None,
+                "status": status_filter.value if status_filter else None,
+                "featured": featured_only,
+                "sort_by": sort_by.value,
+                "endpoint": "/api/prompts",  # Track which endpoint was used
+            },
+        )
+
     # Convert to response format with category IDs
     prompt_responses = []
     for prompt in prompts:
@@ -108,6 +132,7 @@ async def get_prompt(
     prompt_id: UUID,
     db: DatabaseDep,
     increment_view: bool = Query(True, description="Increment view count"),
+    current_user: OptionalUserDep = None,
 ) -> PromptDetailResponse:
     """
     Get detailed information about a specific prompt.
@@ -133,6 +158,15 @@ async def get_prompt(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Prompt not found",
+        )
+
+    # Track view event for analytics (best-effort, don't fail on errors)
+    if increment_view:
+        AnalyticsService.track_event(
+            db=db,
+            event_type=AnalyticsEventType.VIEW,
+            prompt_id=prompt_id,
+            user_id=current_user.id if current_user else None,
         )
 
     # Build response with author info and category IDs
@@ -309,6 +343,19 @@ async def track_prompt_copy(
         platform_tag=platform_tag,
         ip_address=ip_address,
         user_agent=user_agent,
+    )
+
+    # Also track copy event in analytics_events for consistency (best-effort)
+    AnalyticsService.track_event(
+        db=db,
+        event_type=AnalyticsEventType.COPY,
+        prompt_id=prompt_id,
+        user_id=current_user.id if current_user else None,
+        metadata={
+            "platform_tag": platform_tag,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+        } if platform_tag or ip_address or user_agent else None,
     )
 
     return MessageResponse(message="Copy event tracked successfully")

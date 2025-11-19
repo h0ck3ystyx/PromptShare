@@ -113,17 +113,8 @@ def ensure_test_database():
         pytest.skip(f"Test database not available at {TEST_DATABASE_URL}")
 
 
-# Verify database connection before creating engine
-# This ensures we fail fast if DB is not available
-if not _check_database_connection():
-    is_ci = os.getenv("CI") is not None or os.getenv("GITHUB_ACTIONS") is not None
-    if is_ci:
-        pytest.fail(
-            f"Test database not available at {TEST_DATABASE_URL}. "
-            "CI builds require a working test database."
-        )
-    pytest.skip(f"Test database not available at {TEST_DATABASE_URL}")
-
+# Create engine - connection check will happen in fixtures
+# This allows pytest to parse CLI args before checking database
 engine = create_engine(
     TEST_DATABASE_URL,
     pool_pre_ping=True,
@@ -136,6 +127,16 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 @pytest.fixture(scope="function")
 def db_session():
     """Create a test database session."""
+    # Verify database connection at fixture time, not import time
+    is_ci = os.getenv("CI") is not None or os.getenv("GITHUB_ACTIONS") is not None
+    if not _check_database_connection():
+        if is_ci:
+            pytest.fail(
+                f"Test database not available at {TEST_DATABASE_URL}. "
+                "CI builds require a working test database."
+            )
+        pytest.skip(f"Test database not available at {TEST_DATABASE_URL}")
+    
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:

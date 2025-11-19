@@ -2,7 +2,8 @@
 
 from fastapi import status
 
-from src.constants import PlatformTag, PromptStatus, SortOrder
+from src.constants import AnalyticsEventType, PlatformTag, PromptStatus, SortOrder
+from src.models.analytics_event import AnalyticsEvent
 from src.models.category import Category
 from src.models.prompt import Prompt
 from src.models.user import User
@@ -48,6 +49,18 @@ class TestSearchRouter:
         assert data["total"] == 1
         assert len(data["items"]) == 1
         assert "Python" in data["items"][0]["title"]
+
+        # Verify analytics event was created
+        search_event = (
+            db_session.query(AnalyticsEvent)
+            .filter(
+                AnalyticsEvent.event_type == AnalyticsEventType.SEARCH,
+            )
+            .first()
+        )
+        assert search_event is not None
+        assert search_event.event_metadata is not None
+        assert search_event.event_metadata.get("query") == "Python"
 
     def test_search_prompts_with_filters(self, client, db_session):
         """Test searching with platform and category filters."""
