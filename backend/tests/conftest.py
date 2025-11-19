@@ -4,6 +4,7 @@ import os
 import subprocess
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -112,6 +113,17 @@ def ensure_test_database():
         pytest.skip(f"Test database not available at {TEST_DATABASE_URL}")
 
 
+# Verify database connection before creating engine
+# This ensures we fail fast if DB is not available
+if not _check_database_connection():
+    is_ci = os.getenv("CI") is not None or os.getenv("GITHUB_ACTIONS") is not None
+    if is_ci:
+        pytest.fail(
+            f"Test database not available at {TEST_DATABASE_URL}. "
+            "CI builds require a working test database."
+        )
+    pytest.skip(f"Test database not available at {TEST_DATABASE_URL}")
+
 engine = create_engine(
     TEST_DATABASE_URL,
     pool_pre_ping=True,
@@ -143,7 +155,37 @@ def client(db_session):
             pass
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        yield test_client
+    
+    # Mock Celery task .delay() calls to execute synchronously in tests (no Redis required)
+    # We need to patch the task objects that are imported in the services
+    with patch("src.tasks.notifications.send_notification_task.delay") as mock_notif_delay, \
+         patch("src.tasks.notifications.send_bulk_notifications_task.delay") as mock_bulk_delay:
+        # Make tasks execute immediately by calling .run() when .delay() is called
+        def sync_notif_task(*args, **kwargs):
+            from src.tasks.notifications import send_notification_task
+            # Create a mock task instance for DatabaseTask with db_session
+            class MockTask:
+                def __init__(self):
+                    self._db = db_session
+                @property
+                def db(self):
+                    return self._db
+                def retry(self, *args, **kwargs):
+                    raise Exception("Retry called")
+            task_instance = MockTask()
+            # Call the actual task function with task instance as first arg
+            return send_notification_task(task_instance, *args, **kwargs)
+        
+        def sync_bulk_task(*args, **kwargs):
+            from src.tasks.notifications import send_bulk_notifications_task
+            # Patch SessionLocal to use test db_session for bulk task
+            with patch("src.tasks.notifications.SessionLocal", return_value=db_session):
+                return send_bulk_notifications_task.run(*args, **kwargs)
+        
+        mock_notif_delay.side_effect = sync_notif_task
+        mock_bulk_delay.side_effect = sync_bulk_task
+        
+        with TestClient(app) as test_client:
+            yield test_client
     app.dependency_overrides.clear()
 

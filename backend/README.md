@@ -56,8 +56,15 @@ alembic upgrade head
 uvicorn src.main:app --reload --port 7999
 ```
 
+6. (Optional) Run Celery worker for async notifications:
+```bash
+celery -A celery_worker worker --loglevel=info
+```
+
 The API will be available at `http://localhost:7999`
 API documentation at `http://localhost:7999/api/docs`
+
+**Note:** Celery worker is required for async notification delivery. Without it, notifications will be queued but not processed.
 
 ## Project Structure
 
