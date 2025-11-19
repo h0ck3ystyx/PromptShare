@@ -126,13 +126,13 @@ docker-compose -f docker-compose.test.yml down
 ## 📝 Development Status
 
 - [x] Phase 1: Foundation (Database, Authentication)
-- [ ] Phase 2: Core Prompt Features
-- [ ] Phase 3: Search and Discovery
-- [ ] Phase 4: Collaboration Features
-- [ ] Phase 5: User Management
-- [ ] Phase 6: Notifications
-- [ ] Phase 7: Analytics
-- [ ] Phase 8: Onboarding
+- [x] Phase 2: Core Prompt Features
+- [x] Phase 3: Search and Discovery
+- [x] Phase 4: Collaboration Features (Comments, Ratings, Upvotes)
+- [x] Phase 5: User Management and Permissions
+- [ ] Phase 6: Notifications and Following
+- [ ] Phase 7: Analytics and Reporting
+- [ ] Phase 8: Onboarding and Documentation
 - [ ] Phase 9: Frontend Integration
 - [ ] Phase 10: Testing and Polish
 
@@ -140,9 +140,11 @@ docker-compose -f docker-compose.test.yml down
 
 - LDAP/Active Directory authentication
 - JWT token-based authorization
-- Role-based access control
+- Role-based access control (Admin, Moderator, Member)
+- Self-protection mechanisms (admins cannot change own role/deactivate self)
 - Input validation with Pydantic
 - SQL injection protection via SQLAlchemy ORM
+- Authorization checks on all sensitive endpoints
 
 ## 📄 License
 
