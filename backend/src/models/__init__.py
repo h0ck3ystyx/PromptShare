@@ -2,7 +2,9 @@
 
 from src.models.analytics_event import AnalyticsEvent
 from src.models.category import Category
+from src.models.collection import Collection, CollectionPrompt
 from src.models.comment import Comment
+from src.models.faq import FAQ
 from src.models.notification import Notification
 from src.models.prompt import Prompt, PromptCategory
 from src.models.prompt_copy_event import PromptCopyEvent
@@ -23,4 +25,7 @@ __all__ = [
     "UserFollow",
     "Notification",
     "AnalyticsEvent",
+    "Collection",
+    "CollectionPrompt",
+    "FAQ",
 ]

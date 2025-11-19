@@ -41,25 +41,22 @@ def _check_database_connection() -> bool:
         return False
 
 
-def _start_test_database() -> None:
-    """Start test database using docker-compose if not already running."""
-    if _check_database_connection():
-        return  # Database is already available
+def _start_test_database() -> bool:
+    """
+    Start test database using docker-compose if not already running.
     
-    # Check if we're in CI environment - fail fast instead of skipping
-    is_ci = os.getenv("CI") is not None or os.getenv("GITHUB_ACTIONS") is not None
+    Returns:
+        bool: True if database is available, False otherwise
+    """
+    if _check_database_connection():
+        return True  # Database is already available
     
     # Get project root (two levels up from backend/tests)
     project_root = Path(__file__).parent.parent.parent
     compose_file = project_root / "docker-compose.test.yml"
     
     if not compose_file.exists():
-        if is_ci:
-            pytest.fail(
-                "docker-compose.test.yml not found and database not available. "
-                "CI builds require a test database."
-            )
-        pytest.skip("docker-compose.test.yml not found and database not available")
+        return False  # Can't start database without compose file
     
     # Start docker-compose
     try:
@@ -75,42 +72,30 @@ def _start_test_database() -> None:
         elapsed = 0
         while elapsed < max_wait:
             if _check_database_connection():
-                return
+                return True
             time.sleep(1)
             elapsed += 1
         
-        if is_ci:
-            pytest.fail(
-                "Test database failed to start within 30 seconds. "
-                "CI builds require a working test database."
-            )
-        pytest.skip("Test database failed to start within 30 seconds")
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        if is_ci:
-            pytest.fail(
-                f"docker-compose not available or failed to start test database: {e}. "
-                "CI builds require Docker and docker-compose."
-            )
-        pytest.skip("docker-compose not available or failed to start test database")
+        return False  # Database failed to start
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False  # docker-compose not available or failed
 
 
 # Auto-start test database before any tests run
 @pytest.fixture(scope="session", autouse=True)
 def ensure_test_database():
-    """Ensure test database is running before tests."""
-    # Check if we're in CI environment - fail fast instead of skipping
-    is_ci = os.getenv("CI") is not None or os.getenv("GITHUB_ACTIONS") is not None
+    """
+    Ensure test database is running before tests.
     
+    This fixture runs automatically before any tests and attempts to start
+    the test database if it's not already available. The actual skip/fail
+    logic is deferred to the db_session fixture to allow pytest to parse
+    CLI arguments first.
+    """
     # Only auto-start if using default test database URL
     if TEST_DATABASE_URL == "postgresql+psycopg://test_user:test_password@localhost:5433/test_promptshare":
-        _start_test_database()
-    elif not _check_database_connection():
-        if is_ci:
-            pytest.fail(
-                f"Test database not available at {TEST_DATABASE_URL}. "
-                "CI builds require a working test database."
-            )
-        pytest.skip(f"Test database not available at {TEST_DATABASE_URL}")
+        _start_test_database()  # Attempt to start, but don't fail here
+    # Don't skip/fail here - let db_session fixture handle it
 
 
 # Create engine - connection check will happen in fixtures
@@ -126,16 +111,41 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 @pytest.fixture(scope="function")
 def db_session():
-    """Create a test database session."""
+    """
+    Create a test database session.
+    
+    This fixture checks database availability and skips/fails tests if the
+    database is not available. This check happens at fixture time, not import
+    time, allowing pytest to parse CLI arguments first.
+    """
     # Verify database connection at fixture time, not import time
     is_ci = os.getenv("CI") is not None or os.getenv("GITHUB_ACTIONS") is not None
+    
+    # Try to start database if not available (only for default URL)
     if not _check_database_connection():
-        if is_ci:
-            pytest.fail(
+        if TEST_DATABASE_URL == "postgresql+psycopg://test_user:test_password@localhost:5433/test_promptshare":
+            # Try to start database one more time
+            if not _start_test_database():
+                if is_ci:
+                    pytest.fail(
+                        f"Test database not available at {TEST_DATABASE_URL} and could not be started. "
+                        "CI builds require a working test database."
+                    )
+                pytest.skip(
+                    f"Test database not available at {TEST_DATABASE_URL} and could not be started. "
+                    "Start it manually with: docker-compose -f docker-compose.test.yml up -d"
+                )
+        else:
+            # Custom database URL - don't try to start, just check
+            if is_ci:
+                pytest.fail(
+                    f"Test database not available at {TEST_DATABASE_URL}. "
+                    "CI builds require a working test database."
+                )
+            pytest.skip(
                 f"Test database not available at {TEST_DATABASE_URL}. "
-                "CI builds require a working test database."
+                "Please ensure the database is running and accessible."
             )
-        pytest.skip(f"Test database not available at {TEST_DATABASE_URL}")
     
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()

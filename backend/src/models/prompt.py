@@ -51,6 +51,11 @@ class Prompt(Base):
         secondary="prompt_categories",
         back_populates="prompts",
     )
+    collections = relationship(
+        "Collection",
+        secondary="collection_prompts",
+        back_populates="prompts",
+    )
 
     def __repr__(self) -> str:
         """String representation of Prompt."""
