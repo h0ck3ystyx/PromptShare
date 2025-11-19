@@ -124,7 +124,6 @@ def send_bulk_notifications_task(
     Returns:
         dict: Task result with counts and status
     """
-    from uuid import UUID
 
     results = {
         "total": len(user_ids),
