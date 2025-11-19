@@ -233,51 +233,51 @@ promptshare/
 ### Phase 1: Foundation (Week 1-2)
 **Goal**: Set up project structure, database, and basic authentication
 
-- [ ] Initialize Python virtual environment: `python -m venv venv`
-- [ ] Initialize FastAPI project structure in `backend/`
-- [ ] Set up PostgreSQL database with SQLAlchemy
-- [ ] Create database models (User, Prompt, Category)
-- [ ] Implement LDAP/AD authentication service
-- [ ] Create authentication endpoints (login, logout, current user)
-- [ ] Set up dependency injection for database sessions
-- [ ] Configure environment variables
-- [ ] Set up Alembic for migrations
-- [ ] Basic unit tests for auth service
+- [x] Initialize Python virtual environment: `python -m venv venv`
+- [x] Initialize FastAPI project structure in `backend/`
+- [x] Set up PostgreSQL database with SQLAlchemy
+- [x] Create database models (User, Prompt, Category)
+- [x] Implement LDAP/AD authentication service
+- [x] Create authentication endpoints (login, logout, current user)
+- [x] Set up dependency injection for database sessions
+- [x] Configure environment variables
+- [x] Set up Alembic for migrations
+- [x] Basic unit tests for auth service
 
 ### Phase 2: Core Prompt Features (Week 2-3)
 **Goal**: Implement prompt CRUD operations
 
-- [ ] Create Pydantic schemas for prompts
-- [ ] Implement prompt service (create, read, update, delete)
-- [ ] Create prompt router endpoints
-- [ ] Implement category management
-- [ ] Add platform tagging system
-- [ ] Implement prompt status workflow (draft -> published)
-- [ ] Add one-click copy functionality (API endpoint)
-- [ ] Unit tests for prompt service
-- [ ] Integration tests for prompt endpoints
+- [x] Create Pydantic schemas for prompts
+- [x] Implement prompt service (create, read, update, delete)
+- [x] Create prompt router endpoints
+- [x] Implement category management
+- [x] Add platform tagging system
+- [x] Implement prompt status workflow (draft -> published)
+- [x] Add one-click copy functionality (API endpoint)
+- [x] Unit tests for prompt service
+- [x] Integration tests for prompt endpoints
 
 ### Phase 3: Search and Discovery (Week 3-4)
 **Goal**: Enable users to find prompts easily
 
-- [ ] Implement full-text search (PostgreSQL or Elasticsearch)
-- [ ] Create search service with filters (platform, category, keyword)
-- [ ] Add search endpoint with pagination
-- [ ] Implement prompt browsing by category
-- [ ] Add sorting options (newest, most viewed, highest rated)
-- [ ] Create featured prompts functionality
-- [ ] Tests for search functionality
+- [x] Implement full-text search (PostgreSQL or Elasticsearch)
+- [x] Create search service with filters (platform, category, keyword)
+- [x] Add search endpoint with pagination
+- [x] Implement prompt browsing by category
+- [x] Add sorting options (newest, most viewed, highest rated)
+- [x] Create featured prompts functionality
+- [x] Tests for search functionality
 
 ### Phase 4: Collaboration Features (Week 4-5)
 **Goal**: Enable user interaction and feedback
 
-- [ ] Implement comment system (nested comments support)
-- [ ] Create rating system (1-5 stars)
-- [ ] Implement upvote/downvote functionality
-- [ ] Add prompt editing (author only, with version history)
-- [ ] Create comment and rating endpoints
-- [ ] Add moderation capabilities for admins
-- [ ] Tests for collaboration features
+- [x] Implement comment system (nested comments support)
+- [x] Create rating system (1-5 stars)
+- [x] Implement upvote/downvote functionality
+- [x] Add prompt editing (author only, with version history)
+- [x] Create comment and rating endpoints
+- [x] Add moderation capabilities for admins
+- [x] Tests for collaboration features
 
 ### Phase 5: User Management and Permissions (Week 5)
 **Goal**: Role-based access control
