@@ -1,6 +1,6 @@
 """Tests for analytics service error handling."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from src.constants import AnalyticsEventType
 from src.services.analytics_service import AnalyticsService
