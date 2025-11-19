@@ -6,7 +6,6 @@ from uuid import uuid4
 import pytest
 
 from src.constants import AnalyticsEventType, PlatformTag, PromptStatus, UserRole
-from src.models.analytics_event import AnalyticsEvent
 from src.models.prompt import Prompt
 from src.models.prompt_copy_event import PromptCopyEvent
 from src.models.user import User
