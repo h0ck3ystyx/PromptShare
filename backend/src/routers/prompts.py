@@ -174,6 +174,7 @@ async def create_prompt(
         db=db,
         prompt_data=prompt_data,
         author_id=current_user.id,
+        author=current_user,
     )
 
     # Build response with category IDs

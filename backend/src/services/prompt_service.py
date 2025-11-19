@@ -6,11 +6,12 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from src.constants import PromptStatus, SortOrder, UserRole
+from src.constants import NotificationType, PromptStatus, SortOrder, UserRole
 from src.models.category import Category
 from src.models.prompt import Prompt
 from src.models.prompt_copy_event import PromptCopyEvent
 from src.models.user import User
+from src.models.user_follow import UserFollow
 from src.schemas.prompt import PromptCreate, PromptUpdate
 
 
@@ -22,6 +23,7 @@ class PromptService:
         db: Session,
         prompt_data: PromptCreate,
         author_id: UUID,
+        author: Optional[User] = None,
     ) -> Prompt:
         """
         Create a new prompt.
@@ -37,6 +39,22 @@ class PromptService:
         Raises:
             HTTPException: If categories not found or other validation errors
         """
+        # Get author if not provided
+        if author is None:
+            author = db.query(User).filter(User.id == author_id).first()
+            if not author:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Author not found",
+                )
+
+        # Check permission for is_featured
+        if prompt_data.is_featured and author.role not in (UserRole.ADMIN, UserRole.MODERATOR):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only admins and moderators can set featured status",
+            )
+
         # Validate categories if provided
         if prompt_data.category_ids:
             categories = (
@@ -62,7 +80,7 @@ class PromptService:
             usage_tips=prompt_data.usage_tips,
             status=prompt_data.status,
             author_id=author_id,
-            is_featured=prompt_data.is_featured,
+            is_featured=prompt_data.is_featured if prompt_data.is_featured else False,
         )
 
         # Associate categories
@@ -72,6 +90,15 @@ class PromptService:
         db.add(prompt)
         db.commit()
         db.refresh(prompt)
+
+        # Notify followers if prompt is published
+        if prompt.status == PromptStatus.PUBLISHED and prompt.categories:
+            PromptService._notify_category_followers(
+                db=db,
+                prompt=prompt,
+                notification_type=NotificationType.NEW_PROMPT,
+            )
+
         return prompt
 
     @staticmethod
@@ -288,8 +315,32 @@ class PromptService:
                 )
             prompt.categories = categories
 
+        # Track if status changed to published or if content was updated
+        old_status = prompt.status
+        status_changed_to_published = (
+            prompt_data.status == PromptStatus.PUBLISHED
+            and old_status != PromptStatus.PUBLISHED
+        )
+        content_updated = prompt_data.content is not None
+
         db.commit()
         db.refresh(prompt)
+
+        # Notify followers if status changed to published
+        if status_changed_to_published and prompt.categories:
+            PromptService._notify_category_followers(
+                db=db,
+                prompt=prompt,
+                notification_type=NotificationType.NEW_PROMPT,
+            )
+        # Notify followers if content was updated (and prompt is published)
+        elif content_updated and prompt.status == PromptStatus.PUBLISHED and prompt.categories:
+            PromptService._notify_category_followers(
+                db=db,
+                prompt=prompt,
+                notification_type=NotificationType.UPDATE,
+            )
+
         return prompt
 
     @staticmethod
@@ -326,6 +377,63 @@ class PromptService:
 
         db.delete(prompt)
         db.commit()
+
+    @staticmethod
+    def _notify_category_followers(
+        db: Session,
+        prompt: Prompt,
+        notification_type: NotificationType,
+    ) -> None:
+        """
+        Notify all users following the prompt's categories.
+
+        Deduplicates notifications so users following multiple categories
+        only receive one notification per prompt.
+
+        Args:
+            db: Database session
+            prompt: The prompt that triggered the notification
+            notification_type: Type of notification (NEW_PROMPT or UPDATE)
+        """
+        from src.services.notification_service import NotificationService
+
+        if not prompt.categories:
+            return
+
+        category_ids = [cat.id for cat in prompt.categories]
+
+        # Get all users following these categories
+        follows = (
+            db.query(UserFollow)
+            .filter(UserFollow.category_id.in_(category_ids))
+            .all()
+        )
+
+        # Deduplicate by user_id - users following multiple categories get one notification
+        unique_user_ids = {follow.user_id for follow in follows if follow.user_id != prompt.author_id}
+
+        if not unique_user_ids:
+            return
+
+        # Create notification message
+        if notification_type == NotificationType.NEW_PROMPT:
+            message = f"New prompt published: {prompt.title}"
+        else:  # UPDATE
+            message = f"Prompt updated: {prompt.title}"
+
+        # Send notifications asynchronously via Celery
+        from src.tasks.notifications import send_bulk_notifications_task
+
+        user_id_strings = [str(user_id) for user_id in unique_user_ids]
+        
+        # Queue async task for notification delivery
+        send_bulk_notifications_task.delay(
+            user_ids=user_id_strings,
+            notification_type=notification_type.value,
+            message=message,
+            prompt_id=str(prompt.id),
+            send_email=settings.email_enabled,
+        )
 
     @staticmethod
     def track_copy(

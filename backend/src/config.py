@@ -36,6 +36,19 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
+    # Celery
+    celery_broker_url: str = "redis://localhost:6379/0"
+    celery_result_backend: str = "redis://localhost:6379/0"
+
+    # Email (SMTP)
+    email_enabled: bool = False
+    email_smtp_host: str = "smtp.gmail.com"
+    email_smtp_port: int = 587
+    email_smtp_user: str = ""
+    email_smtp_password: str = ""
+    email_from_address: str = "noreply@promptshare.com"
+    email_from_name: str = "PromptShare"
+
     # CORS - stored as comma-separated string in env, converted to list
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 

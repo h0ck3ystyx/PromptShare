@@ -42,6 +42,7 @@ class TestPromptService:
             db=db_session,
             prompt_data=prompt_data,
             author_id=author.id,
+            author=author,
         )
 
         assert prompt.id is not None
@@ -80,6 +81,7 @@ class TestPromptService:
             db=db_session,
             prompt_data=prompt_data,
             author_id=author.id,
+            author=author,
         )
 
         assert len(prompt.categories) == 2
@@ -447,4 +449,64 @@ class TestPromptService:
             PromptService.track_copy(db_session, uuid4())
 
         assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_create_prompt_with_featured_as_member_fails(self, db_session):
+        """Test that members cannot set is_featured during creation."""
+        # Create member user
+        author = User(
+            username="testauthor",
+            email="testauthor@company.com",
+            full_name="Test Author",
+            role=UserRole.MEMBER,
+        )
+        db_session.add(author)
+        db_session.commit()
+
+        # Try to create prompt with is_featured=True
+        prompt_data = PromptCreate(
+            title="Test Prompt",
+            content="Prompt content",
+            platform_tags=[PlatformTag.GITHUB_COPILOT],
+            is_featured=True,
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            PromptService.create_prompt(
+                db=db_session,
+                prompt_data=prompt_data,
+                author_id=author.id,
+                author=author,
+            )
+
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
+        assert "admins and moderators" in str(exc_info.value.detail).lower()
+
+    def test_create_prompt_with_featured_as_admin_succeeds(self, db_session):
+        """Test that admins can set is_featured during creation."""
+        # Create admin user
+        author = User(
+            username="testadmin",
+            email="testadmin@company.com",
+            full_name="Test Admin",
+            role=UserRole.ADMIN,
+        )
+        db_session.add(author)
+        db_session.commit()
+
+        # Create prompt with is_featured=True
+        prompt_data = PromptCreate(
+            title="Test Prompt",
+            content="Prompt content",
+            platform_tags=[PlatformTag.GITHUB_COPILOT],
+            is_featured=True,
+        )
+
+        prompt = PromptService.create_prompt(
+            db=db_session,
+            prompt_data=prompt_data,
+            author_id=author.id,
+            author=author,
+        )
+
+        assert prompt.is_featured is True
 

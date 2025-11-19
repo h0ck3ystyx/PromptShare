@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.constants import UserRole
+from src.constants import NotificationType, UserRole
 from src.models.comment import Comment
 from src.models.prompt import Prompt
 from src.models.user import User
@@ -80,6 +80,21 @@ class CommentService:
             .filter(Comment.id == comment.id)
             .first()
         )
+
+        # Notify prompt author (if commenter is not the author) asynchronously
+        if prompt.author_id != user_id:
+            from src.config import settings
+            from src.tasks.notifications import send_notification_task
+
+            # Queue async task for notification delivery
+            send_notification_task.delay(
+                user_id=str(prompt.author_id),
+                notification_type=NotificationType.COMMENT.value,
+                message=f"New comment on your prompt: {prompt.title}",
+                prompt_id=str(prompt_id),
+                send_email=settings.email_enabled,
+            )
+
         return comment_with_user or comment
 
     @staticmethod
