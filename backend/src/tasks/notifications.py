@@ -134,7 +134,6 @@ def send_bulk_notifications_task(
         "errors": [],
     }
 
-    from src.database import SessionLocal
     db = SessionLocal()
     try:
         notif_type = NotificationType(notification_type)
