@@ -12,6 +12,8 @@ from src.models.constants import AnalyticsEventType
 from src.models.prompt import Prompt
 from src.models.prompt_copy_event import PromptCopyEvent
 
+import logging
+logger = logging.getLogger(__name__)
 
 class AnalyticsService:
     """Service for handling analytics operations."""
