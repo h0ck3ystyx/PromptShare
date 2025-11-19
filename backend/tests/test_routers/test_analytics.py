@@ -4,7 +4,6 @@ import pytest
 from fastapi import status
 
 from src.constants import AnalyticsEventType, PlatformTag, PromptStatus, UserRole
-from src.models.analytics_event import AnalyticsEvent
 from src.models.prompt import Prompt
 from src.models.user import User
 from src.services.auth_service import AuthService
