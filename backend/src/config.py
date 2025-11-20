@@ -48,6 +48,28 @@ class Settings(BaseSettings):
     email_smtp_password: str = ""
     email_from_address: str = "noreply@promptshare.com"
     email_from_name: str = "PromptShare"
+    
+    # Local Authentication
+    local_auth_enabled: bool = True  # Enable local authentication alongside LDAP
+    password_hash_rounds: int = 12  # bcrypt rounds (4-31, higher = more secure but slower)
+    
+    # MFA Settings
+    mfa_enabled: bool = True  # Enable MFA feature
+    mfa_code_expiry_minutes: int = 10  # MFA code expiration time
+    mfa_trusted_device_days: int = 30  # Days to trust a device
+    
+    # Password Reset & Verification
+    password_reset_token_expiry_hours: int = 24
+    email_verification_token_expiry_hours: int = 48
+    
+    # Rate Limiting
+    auth_rate_limit_enabled: bool = True
+    auth_rate_limit_per_minute: int = 5  # Max attempts per minute
+    auth_rate_limit_per_hour: int = 20  # Max attempts per hour
+    
+    # Session Management
+    session_expiry_hours: int = 30 * 24  # 30 days default
+    remember_me_expiry_days: int = 90  # 90 days for "remember me"
 
     # CORS - stored as comma-separated string in env, converted to list
     cors_origins: str = "http://localhost:5173,http://localhost:3000"

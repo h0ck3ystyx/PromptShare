@@ -336,7 +336,20 @@ promptshare/
 - [x] Add responsive design (mobile-first approach)
 - [x] Set up CORS configuration for API communication
 
-### Phase 10: Testing and Polish (Week 11-12)
+### Phase 10: Local Authentication & MFA (Week 11-12)
+**Goal**: Deliver a modern first-party auth experience for internal and external contributors
+
+- [x] Replace/augment AD-only auth with a local credential store (registration, login, logout, remember-me)
+- [x] Hash passwords via Argon2 or bcrypt with per-user salts and configurable cost factors
+- [x] Validate password strength (length, entropy, breach list) with inline UI hints
+- [x] Implement optional email-based MFA: enrollment, verification codes, resend flow, trusted devices, disable path
+- [x] Add password reset + account verification links with expiring signed tokens
+- [ ] Provide account security dashboard (active sessions, revoke devices, change password) - Backend endpoints created, UI pending
+- [ ] Introduce rate limiting + captcha fallback on auth endpoints and audit logging for suspicious events - Audit logging implemented, rate limiting pending
+- [ ] Integrate updated auth state with frontend (Pinia store, guards) including accessible forms and mobile-friendly layouts
+- [ ] Document new env vars (SMTP, MFA toggles, hashing cost), CLI scripts for local setup, and add automated tests covering auth + MFA edge cases
+
+### Phase 11: Testing and Polish (Week 13)
 **Goal**: Ensure quality and performance
 
 - [ ] Achieve >85% test coverage
@@ -606,4 +619,3 @@ npm run dev
 2. Set up development environment using commands above
 3. Initialize Git repository (if not already done)
 4. Begin Phase 1 implementation
-

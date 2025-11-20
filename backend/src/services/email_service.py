@@ -69,7 +69,7 @@ class EmailService:
             )
 
             # Send email
-            await EmailService._send_email(
+            await EmailService._send_email_async(
                 to_email=user.email,
                 to_name=user.full_name,
                 subject=subject,
@@ -161,7 +161,30 @@ class EmailService:
         return html_body
 
     @staticmethod
-    async def _send_email(
+    async def send_email(to_email: str, subject: str, body: str) -> bool:
+        """
+        Send email asynchronously (for MFA codes, password resets, etc.).
+
+        Args:
+            to_email: Recipient email address
+            subject: Email subject
+            body: Email body (plain text)
+
+        Returns:
+            bool: True if email was sent successfully, False otherwise
+        """
+        if not EmailService.is_enabled():
+            return False
+
+        try:
+            await EmailService._send_email_async(to_email, "", subject, body)
+            return True
+        except Exception as e:
+            print(f"Failed to send email: {e}")
+            return False
+
+    @staticmethod
+    async def _send_email_async(
         to_email: str,
         to_name: str,
         subject: str,
