@@ -277,6 +277,7 @@ async def register(
 
     # Send verification email
     if settings.email_enabled:
+        # Email verification has a GET handler on the backend API
         verification_url = f"{request.base_url}api/auth/verify-email?token={token}"
         subject = "Verify your PromptShare account"
         body = f"""
@@ -437,7 +438,8 @@ async def password_reset_request(
 
         # Send reset email
         if settings.email_enabled:
-            reset_url = f"{request.base_url}reset-password?token={token}"
+            # Use frontend URL for password reset link (not API base URL)
+            reset_url = f"{settings.app_url}/password-reset?token={token}"
             subject = "Reset your PromptShare password"
             body = f"""
             You requested a password reset for your PromptShare account.

@@ -73,13 +73,15 @@ apiClient.interceptors.response.use(
 // Auth API
 export const authAPI = {
   // Login (supports both LDAP and local auth)
-  login: (username, password) => {
+  login: (username, password, deviceFingerprint = null) => {
     const formData = new FormData()
     formData.append('username', username)
     formData.append('password', password)
-    return apiClient.post('/auth/login', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    const headers = { 'Content-Type': 'multipart/form-data' }
+    if (deviceFingerprint) {
+      headers['X-Device-Fingerprint'] = deviceFingerprint
+    }
+    return apiClient.post('/auth/login', formData, { headers })
   },
   logout: () => apiClient.post('/auth/logout'),
   getCurrentUser: () => apiClient.get('/auth/me'),

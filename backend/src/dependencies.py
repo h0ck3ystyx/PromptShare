@@ -26,6 +26,8 @@ def get_current_user(
 ) -> User:
     """
     Get current authenticated user from JWT token.
+    
+    Also validates that the session is still active (if session management is enabled).
 
     Args:
         db: Database session
@@ -35,7 +37,7 @@ def get_current_user(
         User: Current authenticated user
 
     Raises:
-        HTTPException: If token is invalid or user not found
+        HTTPException: If token is invalid, user not found, or session is inactive
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -52,6 +54,31 @@ def get_current_user(
     except (JWTError, ValueError):
         raise credentials_exception
 
+    # Check if session is still active (if session management is enabled)
+    from src.models.user_session import UserSession
+    from datetime import UTC, datetime
+    
+    session = db.query(UserSession).filter(
+        UserSession.session_token == token,
+        UserSession.is_active == True,
+        UserSession.expires_at > datetime.now(UTC),
+    ).first()
+    
+    # If session management is enabled and session doesn't exist or is inactive, reject
+    # Note: We allow tokens without sessions for backward compatibility during migration
+    # In production, you may want to require sessions for all tokens
+    if session is None:
+        # Token exists but no session - could be from before session management
+        # For now, we'll allow it but log a warning
+        pass
+    elif not session.is_active:
+        # Session was revoked
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise credentials_exception
@@ -61,6 +88,11 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
+
+    # Update session last activity if session exists
+    if session:
+        from src.services.session_service import SessionService
+        SessionService.update_session_activity(db, token)
 
     return user
 

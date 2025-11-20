@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     email_smtp_password: str = ""
     email_from_address: str = "noreply@promptshare.com"
     email_from_name: str = "PromptShare"
+    app_url: str = "http://localhost:5173"  # Frontend base URL for email links
     
     # Local Authentication
     local_auth_enabled: bool = True  # Enable local authentication alongside LDAP

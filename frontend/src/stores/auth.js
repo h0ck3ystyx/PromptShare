@@ -161,7 +161,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(username, password) {
     try {
-      const response = await authAPI.login(username, password)
+      // Get or generate device fingerprint for trusted device recognition
+      let deviceFingerprint = localStorage.getItem('device_fingerprint')
+      if (!deviceFingerprint) {
+        deviceFingerprint = generateDeviceFingerprint()
+        localStorage.setItem('device_fingerprint', deviceFingerprint)
+      }
+      
+      const response = await authAPI.login(username, password, deviceFingerprint)
       
       // Check if MFA is required
       if (response.data.mfa_required) {
