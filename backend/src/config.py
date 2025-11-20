@@ -20,16 +20,16 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # Database
-    database_url: str = "postgresql://user:password@localhost/promptshare"
+    database_url: str  # Required - must be set in .env file
 
     # LDAP/AD
-    ldap_server: str = "ldap://ad.company.com"
-    ldap_base_dn: str = "dc=company,dc=com"
-    ldap_user_dn: str = "cn=admin,dc=company,dc=com"
-    ldap_password: str = "secret"
+    ldap_server: str  # Required - must be set in .env file
+    ldap_base_dn: str  # Required - must be set in .env file
+    ldap_user_dn: str  # Required - must be set in .env file
+    ldap_password: str  # Required - must be set in .env file
 
     # Security
-    secret_key: str = "your-secret-key-change-in-production"
+    secret_key: str  # Required - must be set in .env file
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 

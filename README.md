@@ -31,7 +31,7 @@ An internal prompt-sharing web application that allows employees to discover, su
 ```
 promptshare/
 ├── backend/          # FastAPI backend application
-├── frontend/         # Vue.js frontend (coming soon)
+├── frontend/         # Vue.js 3 frontend application
 ├── requirements.md   # Project requirements
 └── IMPLEMENTATION_PLAN.md  # Detailed implementation plan
 ```
@@ -42,7 +42,7 @@ promptshare/
 
 - Python 3.10+
 - PostgreSQL
-- Node.js 18+ (for frontend, coming soon)
+- Node.js 18+ and npm
 
 ### Backend Setup
 
@@ -81,6 +81,48 @@ uvicorn src.main:app --reload --port 7999
 
 The API will be available at `http://localhost:7999`
 API documentation at `http://localhost:7999/api/docs`
+
+### Frontend Setup
+
+1. Navigate to the frontend directory:
+```bash
+cd frontend
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Create `.env` file:
+```bash
+cp .env.example .env
+# Edit .env with your API URL (default: http://localhost:7999/api)
+```
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+The frontend will be available at `http://localhost:5173`
+
+### Running Both Backend and Frontend
+
+1. **Terminal 1 - Backend**:
+```bash
+cd backend
+source venv/bin/activate
+uvicorn src.main:app --reload --port 7999
+```
+
+2. **Terminal 2 - Frontend**:
+```bash
+cd frontend
+npm run dev
+```
+
+Access the application at `http://localhost:5173`
 
 ## 📚 Documentation
 
@@ -132,8 +174,8 @@ docker-compose -f docker-compose.test.yml down
 - [x] Phase 5: User Management and Permissions
 - [x] Phase 6: Notifications and Following
 - [x] Phase 7: Analytics and Reporting
-- [ ] Phase 8: Onboarding and Documentation
-- [ ] Phase 9: Frontend Integration
+- [x] Phase 8: Onboarding and Documentation
+- [x] Phase 9: Frontend Integration
 - [ ] Phase 10: Testing and Polish
 
 ## 🔒 Security

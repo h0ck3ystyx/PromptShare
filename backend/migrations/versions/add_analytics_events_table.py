@@ -18,11 +18,25 @@ depends_on = None
 
 
 def upgrade() -> None:
+    analyticseventtype_enum = postgresql.ENUM(
+        'view', 'copy', 'search',
+        name='analyticseventtype',
+        create_type=False,
+    )
+
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE analyticseventtype AS ENUM ('view', 'copy', 'search');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
+
     # Create analytics_events table
     op.create_table(
         'analytics_events',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, default=uuid.uuid4),
-        sa.Column('event_type', postgresql.ENUM('view', 'copy', 'search', name='analyticseventtype'), nullable=False),
+        sa.Column('event_type', analyticseventtype_enum, nullable=False),
         sa.Column('prompt_id', postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column('event_metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
@@ -57,4 +71,3 @@ def downgrade() -> None:
     
     # Drop ENUM type
     op.execute("DROP TYPE IF EXISTS analyticseventtype")
-
