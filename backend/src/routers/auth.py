@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -848,4 +849,233 @@ async def mfa_status(
         "mfa_enabled": current_user.mfa_enabled,
         "email_verified": current_user.email_verified,
     }
+
+
+# Security Dashboard Endpoints
+@router.get("/security", response_model=SecurityDashboardResponse, summary="Get security dashboard data")
+async def get_security_dashboard(
+    db: DatabaseDep,
+    current_user: CurrentUserDep,
+) -> SecurityDashboardResponse:
+    """
+    Get security dashboard data for current user.
+
+    Args:
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        SecurityDashboardResponse: Security dashboard data
+    """
+    from src.models.user_session import UserSession
+    from src.models.auth_audit import AuthAuditLog
+
+    # Get active sessions
+    sessions = db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_active == True,
+        UserSession.expires_at > datetime.now(UTC),
+    ).order_by(UserSession.last_activity.desc()).all()
+
+    session_info = [
+        UserSessionInfo(
+            id=session.id,
+            device_info=session.device_info,
+            ip_address=session.ip_address,
+            is_active=session.is_active,
+            created_at=session.created_at.isoformat(),
+            last_activity=session.last_activity.isoformat(),
+            expires_at=session.expires_at.isoformat(),
+        )
+        for session in sessions
+    ]
+
+    # Get trusted devices
+    trusted_devices = MFAService.get_user_trusted_devices(db, current_user.id)
+    device_info = [
+        TrustedDeviceInfo(
+            id=device.id,
+            device_name=device.device_name,
+            ip_address=device.ip_address,
+            created_at=device.created_at.isoformat(),
+            last_used=device.last_used.isoformat(),
+        )
+        for device in trusted_devices
+    ]
+
+    # Get recent auth events (last 20)
+    recent_events = AuthAuditService.get_user_audit_logs(db, current_user.id, limit=20)
+    event_info = [
+        {
+            "event_type": event.event_type,
+            "ip_address": event.ip_address,
+            "created_at": event.created_at.isoformat(),
+            "details": event.details,
+        }
+        for event in recent_events
+    ]
+
+    return SecurityDashboardResponse(
+        mfa_enabled=current_user.mfa_enabled,
+        email_verified=current_user.email_verified,
+        active_sessions=session_info,
+        trusted_devices=device_info,
+        recent_auth_events=event_info,
+    )
+
+
+@router.get("/sessions", response_model=list[UserSessionInfo], summary="List active sessions")
+async def list_sessions(
+    db: DatabaseDep,
+    current_user: CurrentUserDep,
+) -> list[UserSessionInfo]:
+    """
+    List all active sessions for current user.
+
+    Args:
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        list[UserSessionInfo]: List of active sessions
+    """
+    from src.models.user_session import UserSession
+
+    sessions = db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_active == True,
+        UserSession.expires_at > datetime.now(UTC),
+    ).order_by(UserSession.last_activity.desc()).all()
+
+    return [
+        UserSessionInfo(
+            id=session.id,
+            device_info=session.device_info,
+            ip_address=session.ip_address,
+            is_active=session.is_active,
+            created_at=session.created_at.isoformat(),
+            last_activity=session.last_activity.isoformat(),
+            expires_at=session.expires_at.isoformat(),
+        )
+        for session in sessions
+    ]
+
+
+@router.delete("/sessions/{session_id}", summary="Revoke a session")
+async def revoke_session(
+    request: Request,
+    db: DatabaseDep,
+    current_user: CurrentUserDep,
+    session_id: UUID,
+) -> dict:
+    """
+    Revoke (deactivate) a specific session.
+
+    Args:
+        db: Database session
+        current_user: Current authenticated user
+        session_id: Session ID to revoke
+
+    Returns:
+        dict: Success message
+
+    Raises:
+        HTTPException: If session not found
+    """
+    from src.models.user_session import UserSession
+
+    session = db.query(UserSession).filter(
+        UserSession.id == session_id,
+        UserSession.user_id == current_user.id,
+    ).first()
+
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        )
+
+    session.is_active = False
+    db.commit()
+
+    # Log session revocation
+    ip_address = get_client_ip(request)
+    AuthAuditService.log_event(
+        db=db,
+        event_type="session_revoked",
+        user_id=current_user.id,
+        ip_address=ip_address,
+    )
+
+    return {"message": "Session revoked successfully"}
+
+
+@router.get("/devices", response_model=list[TrustedDeviceInfo], summary="List trusted devices")
+async def list_trusted_devices(
+    db: DatabaseDep,
+    current_user: CurrentUserDep,
+) -> list[TrustedDeviceInfo]:
+    """
+    List all trusted devices for current user.
+
+    Args:
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        list[TrustedDeviceInfo]: List of trusted devices
+    """
+    devices = MFAService.get_user_trusted_devices(db, current_user.id)
+
+    return [
+        TrustedDeviceInfo(
+            id=device.id,
+            device_name=device.device_name,
+            ip_address=device.ip_address,
+            created_at=device.created_at.isoformat(),
+            last_used=device.last_used.isoformat(),
+        )
+        for device in devices
+    ]
+
+
+@router.delete("/devices/{device_id}", summary="Remove a trusted device")
+async def remove_trusted_device(
+    request: Request,
+    db: DatabaseDep,
+    current_user: CurrentUserDep,
+    device_id: UUID,
+) -> dict:
+    """
+    Remove a trusted device.
+
+    Args:
+        db: Database session
+        current_user: Current authenticated user
+        device_id: Device ID to remove
+
+    Returns:
+        dict: Success message
+
+    Raises:
+        HTTPException: If device not found
+    """
+    success = MFAService.remove_trusted_device(db, current_user.id, device_id)
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found",
+        )
+
+    # Log device removal
+    ip_address = get_client_ip(request)
+    AuthAuditService.log_event(
+        db=db,
+        event_type="trusted_device_removed",
+        user_id=current_user.id,
+        ip_address=ip_address,
+    )
+
+    return {"message": "Trusted device removed successfully"}
 

@@ -5,6 +5,8 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from src.middleware.rate_limit import RateLimitMiddleware
+
 
 class TimingMiddleware(BaseHTTPMiddleware):
     """Middleware to add request timing information."""

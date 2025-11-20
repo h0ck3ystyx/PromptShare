@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings
 from src.middleware import TimingMiddleware
+from src.middleware.rate_limit import RateLimitMiddleware
 from src.routers import (
     analytics,
     auth,
@@ -59,6 +60,7 @@ app.add_middleware(
 
 # Custom middleware
 app.add_middleware(TimingMiddleware)
+app.add_middleware(RateLimitMiddleware)
 
 # Include routers
 app.include_router(auth.router, prefix="/api")

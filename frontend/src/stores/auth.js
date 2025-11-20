@@ -155,11 +155,34 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // MFA state
+  const mfaRequired = ref(false)
+  const pendingMfaToken = ref(null)
+
   async function login(username, password) {
     try {
       const response = await authAPI.login(username, password)
+      
+      // Check if MFA is required
+      if (response.data.mfa_required) {
+        mfaRequired.value = true
+        pendingMfaToken.value = response.data.access_token
+        return {
+          success: false,
+          mfaRequired: true,
+          pendingToken: response.data.access_token,
+          message: 'MFA code sent to your email'
+        }
+      }
+      
+      // Normal login success
       token.value = response.data.access_token
-      user.value = response.data.user
+      mfaRequired.value = false
+      pendingMfaToken.value = null
+
+      // Fetch user info
+      const userResponse = await authAPI.getCurrentUser()
+      user.value = userResponse.data
 
       localStorage.setItem('auth_token', token.value)
       localStorage.setItem('user', JSON.stringify(user.value))
@@ -176,6 +199,163 @@ export const useAuthStore = defineStore('auth', () => {
       return {
         success: false,
         error: error.response?.data?.detail || 'Login failed',
+      }
+    }
+  }
+
+  async function verifyMFA(code, rememberDevice = false) {
+    if (!pendingMfaToken.value) {
+      return { success: false, error: 'No pending MFA verification' }
+    }
+
+    try {
+      // Generate device fingerprint (simple implementation)
+      const deviceFingerprint = generateDeviceFingerprint()
+      const deviceName = `${navigator.platform} - ${navigator.userAgent.substring(0, 50)}`
+
+      const response = await authAPI.mfaVerify(
+        pendingMfaToken.value,
+        code,
+        rememberDevice,
+        deviceFingerprint,
+        deviceName
+      )
+
+      // MFA verified, complete login
+      token.value = response.data.access_token
+      mfaRequired.value = false
+      pendingMfaToken.value = null
+
+      // Fetch user info
+      const userResponse = await authAPI.getCurrentUser()
+      user.value = userResponse.data
+
+      localStorage.setItem('auth_token', token.value)
+      localStorage.setItem('user', JSON.stringify(user.value))
+      setTokenExpiry()
+      updateActivityTime()
+      
+      setupTokenRefresh()
+      setupIdleTimeout()
+      setupActivityTracking()
+
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'MFA verification failed',
+      }
+    }
+  }
+
+  function generateDeviceFingerprint() {
+    // Simple device fingerprint based on available properties
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    ctx.textBaseline = 'top'
+    ctx.font = '14px Arial'
+    ctx.fillText('Device fingerprint', 2, 2)
+    const canvasFingerprint = canvas.toDataURL()
+    
+    const fingerprint = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset(),
+      canvasFingerprint.substring(0, 50)
+    ].join('|')
+    
+    // Simple hash
+    let hash = 0
+    for (let i = 0; i < fingerprint.length; i++) {
+      const char = fingerprint.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36)
+  }
+
+  async function register(userData) {
+    try {
+      const response = await authAPI.register(userData)
+      user.value = response.data
+      return { success: true, data: response.data }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Registration failed',
+      }
+    }
+  }
+
+  async function requestPasswordReset(email) {
+    try {
+      await authAPI.requestPasswordReset(email)
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Password reset request failed',
+      }
+    }
+  }
+
+  async function resetPassword(token, newPassword) {
+    try {
+      await authAPI.resetPassword(token, newPassword)
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Password reset failed',
+      }
+    }
+  }
+
+  async function changePassword(currentPassword, newPassword) {
+    try {
+      await authAPI.changePassword(currentPassword, newPassword)
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Password change failed',
+      }
+    }
+  }
+
+  async function enrollMFA(password) {
+    try {
+      await authAPI.mfaEnroll(password)
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'MFA enrollment failed',
+      }
+    }
+  }
+
+  async function disableMFA(password, code = null) {
+    try {
+      await authAPI.mfaDisable(password, code)
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'MFA disable failed',
+      }
+    }
+  }
+
+  async function getSecurityDashboard() {
+    try {
+      const response = await authAPI.getSecurityDashboard()
+      return { success: true, data: response.data }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Failed to load security dashboard',
       }
     }
   }
@@ -271,8 +451,18 @@ export const useAuthStore = defineStore('auth', () => {
     isModerator,
     isTokenExpiringSoon,
     isIdle,
+    mfaRequired,
+    pendingMfaToken,
     login,
     logout,
+    verifyMFA,
+    register,
+    requestPasswordReset,
+    resetPassword,
+    changePassword,
+    enrollMFA,
+    disableMFA,
+    getSecurityDashboard,
     fetchCurrentUser,
     updateActivityTime,
     refreshToken,

@@ -72,10 +72,51 @@ apiClient.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  login: (username, password) =>
-    apiClient.post('/auth/login', { username, password }),
+  // Login (supports both LDAP and local auth)
+  login: (username, password) => {
+    const formData = new FormData()
+    formData.append('username', username)
+    formData.append('password', password)
+    return apiClient.post('/auth/login', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
   logout: () => apiClient.post('/auth/logout'),
   getCurrentUser: () => apiClient.get('/auth/me'),
+  
+  // Registration and local auth
+  register: (data) => apiClient.post('/auth/register', data),
+  verifyEmail: (token) => apiClient.post('/auth/verify-email', { token }),
+  verifyEmailGet: (token) => apiClient.get(`/auth/verify-email?token=${token}`),
+  
+  // Password management
+  requestPasswordReset: (email) => apiClient.post('/auth/password-reset-request', { email }),
+  resetPassword: (token, newPassword) => apiClient.post('/auth/password-reset', { token, new_password: newPassword }),
+  changePassword: (currentPassword, newPassword) => apiClient.post('/auth/change-password', {
+    current_password: currentPassword,
+    new_password: newPassword
+  }),
+  validatePassword: (password) => apiClient.post('/auth/validate-password', null, { params: { password } }),
+  
+  // MFA
+  mfaEnroll: (password) => apiClient.post('/auth/mfa/enroll', { password }),
+  mfaVerify: (pendingToken, code, rememberDevice = false, deviceFingerprint = null, deviceName = null) =>
+    apiClient.post('/auth/mfa/verify', {
+      pending_token: pendingToken,
+      code,
+      remember_device: rememberDevice,
+      device_fingerprint: deviceFingerprint,
+      device_name: deviceName
+    }),
+  mfaDisable: (password, code = null) => apiClient.post('/auth/mfa/disable', { password, code }),
+  mfaStatus: () => apiClient.get('/auth/mfa/status'),
+  
+  // Security dashboard
+  getSecurityDashboard: () => apiClient.get('/auth/security'),
+  listSessions: () => apiClient.get('/auth/sessions'),
+  revokeSession: (sessionId) => apiClient.delete(`/auth/sessions/${sessionId}`),
+  listTrustedDevices: () => apiClient.get('/auth/devices'),
+  removeTrustedDevice: (deviceId) => apiClient.delete(`/auth/devices/${deviceId}`),
 }
 
 // Prompts API

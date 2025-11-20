@@ -18,6 +18,24 @@ const routes = [
     meta: { requiresGuest: true },
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: () => import('../views/Register.vue'),
+    meta: { requiresGuest: true },
+  },
+  {
+    path: '/password-reset',
+    name: 'PasswordReset',
+    component: () => import('../views/PasswordReset.vue'),
+    meta: { requiresGuest: true },
+  },
+  {
+    path: '/security',
+    name: 'SecurityDashboard',
+    component: () => import('../views/SecurityDashboard.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/prompts',
     name: 'Prompts',
     component: () => import('../views/PromptsList.vue'),
