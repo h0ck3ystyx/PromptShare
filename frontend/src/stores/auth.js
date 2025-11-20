@@ -22,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
   let tokenRefreshTimer = null
   let idleTimeoutTimer = null
   let activityCheckInterval = null
+  let activityTrackingCleanup = null
 
   const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
@@ -88,6 +89,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function setupActivityTracking() {
+    // Clean up existing listeners before setting up new ones
+    if (activityTrackingCleanup) {
+      activityTrackingCleanup()
+      activityTrackingCleanup = null
+    }
+    
     // Track user activity
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
     const updateActivity = () => {
@@ -106,12 +113,14 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }, 60000) // Check every minute
     
-    return () => {
+    // Store cleanup function
+    activityTrackingCleanup = () => {
       events.forEach(event => {
         window.removeEventListener(event, updateActivity)
       })
       if (activityCheckInterval) {
         clearInterval(activityCheckInterval)
+        activityCheckInterval = null
       }
     }
   }
@@ -172,6 +181,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    // Clear activity tracking listeners first
+    if (activityTrackingCleanup) {
+      activityTrackingCleanup()
+      activityTrackingCleanup = null
+    }
+    
     // Clear timers
     if (tokenRefreshTimer) {
       clearTimeout(tokenRefreshTimer)

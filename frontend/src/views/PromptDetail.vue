@@ -24,7 +24,7 @@
             </span>
           </div>
           <div class="flex items-center space-x-4 text-sm text-gray-500">
-            <span>By {{ promptsStore.currentPrompt.author?.username || 'Unknown' }}</span>
+            <span>By {{ promptsStore.currentPrompt.author_username || 'Unknown' }}</span>
             <span>{{ promptsStore.currentPrompt.view_count }} views</span>
             <span>{{ new Date(promptsStore.currentPrompt.created_at).toLocaleDateString() }}</span>
           </div>

@@ -23,11 +23,6 @@ const routes = [
     component: () => import('../views/PromptsList.vue'),
   },
   {
-    path: '/prompts/:id',
-    name: 'PromptDetail',
-    component: () => import('../views/PromptDetail.vue'),
-  },
-  {
     path: '/prompts/create',
     name: 'CreatePrompt',
     component: () => import('../views/CreatePrompt.vue'),
@@ -38,6 +33,11 @@ const routes = [
     name: 'EditPrompt',
     component: () => import('../views/EditPrompt.vue'),
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/prompts/:id',
+    name: 'PromptDetail',
+    component: () => import('../views/PromptDetail.vue'),
   },
   {
     path: '/search',

@@ -40,7 +40,7 @@
       >
         <div class="flex justify-between items-start mb-2">
           <div>
-            <span class="font-semibold text-gray-900">{{ comment.author?.username || 'Unknown' }}</span>
+            <span class="font-semibold text-gray-900">{{ comment.author_username || 'Unknown' }}</span>
             <span class="text-sm text-gray-500 ml-2">
               {{ new Date(comment.created_at).toLocaleDateString() }}
             </span>
@@ -84,7 +84,8 @@ async function loadComments() {
   loading.value = true
   try {
     const response = await commentsAPI.list(props.promptId)
-    comments.value = response.data.items || []
+    // Backend returns a bare array, not { items: [...] }
+    comments.value = Array.isArray(response.data) ? response.data : []
   } catch (error) {
     console.error('Failed to load comments:', error)
   } finally {
@@ -110,7 +111,8 @@ async function submitComment() {
 function canDelete(comment) {
   if (!authStore.isAuthenticated) return false
   if (authStore.isAdmin || authStore.isModerator) return true
-  return comment.author_id === authStore.user?.id
+  // Backend returns user_id, not author_id
+  return comment.user_id === authStore.user?.id
 }
 
 async function deleteComment(commentId) {

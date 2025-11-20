@@ -21,6 +21,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useAuthStore } from '../../stores/auth'
 import { ratingsAPI } from '../../services/api'
 
 const props = defineProps({
@@ -30,6 +31,7 @@ const props = defineProps({
   },
 })
 
+const authStore = useAuthStore()
 const userRating = ref(0)
 const averageRating = ref(0)
 const loading = ref(false)
@@ -40,22 +42,28 @@ onMounted(async () => {
 
 async function loadRating() {
   try {
-    // Get user's rating
-    const myRatingResponse = await ratingsAPI.getMyRating(props.promptId)
-    if (myRatingResponse.data) {
-      userRating.value = myRatingResponse.data.rating || 0
+    // Get user's rating (only if authenticated)
+    if (authStore.isAuthenticated) {
+      try {
+        const myRatingResponse = await ratingsAPI.getMyRating(props.promptId)
+        if (myRatingResponse.data) {
+          userRating.value = myRatingResponse.data.rating || 0
+        }
+      } catch (error) {
+        // If no rating exists (404) or unauthorized (401), that's OK for guests
+        if (error.response?.status !== 404 && error.response?.status !== 401) {
+          console.error('Failed to load user rating:', error)
+        }
+      }
     }
     
-    // Get summary for average
+    // Get summary for average (available to all users)
     const summaryResponse = await ratingsAPI.getSummary(props.promptId)
     if (summaryResponse.data) {
       averageRating.value = summaryResponse.data.average_rating || 0
     }
   } catch (error) {
-    // If no rating exists, that's OK
-    if (error.response?.status !== 404) {
-      console.error('Failed to load rating:', error)
-    }
+    console.error('Failed to load rating:', error)
   }
 }
 
