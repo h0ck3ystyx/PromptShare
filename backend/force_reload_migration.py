@@ -3,7 +3,6 @@
 
 import os
 import sys
-import importlib
 
 # Clear all caches
 if 'migrations' in sys.modules:
