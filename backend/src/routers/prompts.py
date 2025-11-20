@@ -30,8 +30,8 @@ async def list_prompts(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     status_filter: Optional[PromptStatus] = Query(None, description="Filter by status"),
-    platform_tag: Optional[PlatformTag] = Query(None, description="Filter by platform tag"),
-    category_id: Optional[UUID] = Query(None, description="Filter by category ID"),
+    platform_tag: Optional[str] = Query(None, description="Filter by platform tag"),
+    category_id: Optional[str] = Query(None, description="Filter by category ID"),
     author_id: Optional[UUID] = Query(None, description="Filter by author ID"),
     featured_only: bool = Query(False, description="Return only featured prompts"),
     q: Optional[str] = Query(None, description="Keyword search across title, description, and content"),
@@ -61,14 +61,37 @@ async def list_prompts(
         PaginatedResponse: Paginated list of prompts
     """
     skip = (page - 1) * page_size
+    
+    # Convert empty strings to None and validate platform_tag
+    platform_tag_enum = None
+    if platform_tag and platform_tag.strip():
+        try:
+            platform_tag_enum = PlatformTag(platform_tag.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid platform_tag: {platform_tag}. Must be one of: {[tag.value for tag in PlatformTag]}"
+            )
+    
+    # Convert empty strings to None and validate category_id
+    category_id_uuid = None
+    if category_id and category_id.strip():
+        try:
+            category_id_uuid = UUID(category_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid category_id: {category_id}. Must be a valid UUID"
+            )
+    
     try:
         prompts, total = PromptService.get_prompts(
             db=db,
             skip=skip,
             limit=page_size,
             status_filter=status_filter,
-            platform_tag=platform_tag.value if platform_tag else None,
-            category_id=category_id,
+            platform_tag=platform_tag_enum.value if platform_tag_enum else None,
+            category_id=category_id_uuid,
             author_id=author_id,
             featured_only=featured_only,
             search_query=q,
@@ -96,8 +119,8 @@ async def list_prompts(
                 "query": q,
                 "title": title,
                 "content": content,
-                "platform_tag": platform_tag.value if platform_tag else None,
-                "category_id": str(category_id) if category_id else None,
+                "platform_tag": platform_tag_enum.value if platform_tag_enum else None,
+                "category_id": str(category_id_uuid) if category_id_uuid else None,
                 "status": status_filter.value if status_filter else None,
                 "featured": featured_only,
                 "sort_by": sort_by.value,

@@ -18,6 +18,12 @@ depends_on = None
 
 
 def upgrade() -> None:
+    notificationtype_enum = postgresql.ENUM(
+        'new_prompt', 'comment', 'update',
+        name='notificationtype',
+        create_type=False,
+    )
+
     # Create notificationtype enum if it doesn't exist
     op.execute("""
         DO $$ BEGIN
@@ -47,7 +53,7 @@ def upgrade() -> None:
         'notifications',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, default=uuid.uuid4),
         sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('type', postgresql.ENUM('new_prompt', 'comment', 'update', name='notificationtype'), nullable=False),
+        sa.Column('type', notificationtype_enum, nullable=False),
         sa.Column('prompt_id', postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column('message', sa.Text(), nullable=False),
         sa.Column('is_read', sa.Boolean(), nullable=False, server_default='false'),
@@ -77,4 +83,3 @@ def downgrade() -> None:
     
     # Drop enum type
     op.execute("DROP TYPE IF EXISTS notificationtype")
-

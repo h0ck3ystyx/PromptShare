@@ -18,7 +18,7 @@ from src.main import app
 # Defaults to dockerized test database, can be overridden via TEST_DATABASE_URL env var
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
-    "postgresql+psycopg://test_user:test_password@localhost:5433/test_promptshare",
+    "postgresql+psycopg://postgres:ChgMeS0m3t_m3123@localhost:5432/promptshare",
 )
 
 # Ensure database URL uses psycopg driver for psycopg3
@@ -93,7 +93,7 @@ def ensure_test_database():
     CLI arguments first.
     """
     # Only auto-start if using default test database URL
-    if TEST_DATABASE_URL == "postgresql+psycopg://test_user:test_password@localhost:5433/test_promptshare":
+    if TEST_DATABASE_URL == "postgresql+psycopg://postgres:ChgMeS0m3t_m3123@localhost:5432/promptshare":
         _start_test_database()  # Attempt to start, but don't fail here
     # Don't skip/fail here - let db_session fixture handle it
 

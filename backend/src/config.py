@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # Database
-    database_url: str = "postgresql://user:password@localhost/promptshare"
+    database_url: str = "postgresql+psycopg://postgres:ChgMeS0m3t_m3123@localhost:5432/promptshare"
 
     # LDAP/AD
     ldap_server: str = "ldap://ad.company.com"
