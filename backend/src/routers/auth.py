@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Header, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
@@ -23,7 +23,10 @@ from src.schemas.auth import (
     PasswordReset,
     PasswordResetRequest,
     PasswordStrengthResponse,
+    SecurityDashboardResponse,
+    TrustedDeviceInfo,
     UserRegister,
+    UserSessionInfo,
 )
 from src.schemas.user import Token, UserResponse
 from src.services.auth_audit_service import AuthAuditService
@@ -32,6 +35,7 @@ from src.services.email_service import EmailService
 from src.services.mfa_service import MFAService
 from src.services.password_service import PasswordService
 from src.services.password_validation_service import PasswordValidationService
+from src.services.session_service import SessionService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -166,6 +170,17 @@ async def login(
 
     # Create access token
     access_token = AuthService.create_access_token(user.id)
+
+    # Create user session
+    device_info = user_agent or "Unknown device"
+    SessionService.create_session(
+        db=db,
+        user_id=user.id,
+        access_token=access_token,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        device_info=device_info,
+    )
 
     return Token(access_token=access_token, token_type="bearer", mfa_required=False)
 
@@ -589,6 +604,7 @@ async def logout(
     request: Request,
     db: DatabaseDep,
     current_user: CurrentUserDep,
+    authorization: Optional[str] = Header(None),
 ) -> dict:
     """
     Logout current user (client should discard token).
@@ -597,10 +613,16 @@ async def logout(
         request: FastAPI request object
         db: Database session
         current_user: Current authenticated user
+        authorization: Authorization header with Bearer token
 
     Returns:
         dict: Success message
     """
+    # Extract token from Authorization header and invalidate session
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]  # Remove "Bearer " prefix
+        SessionService.invalidate_session(db, token)
+
     # Log logout event
     ip_address = get_client_ip(request)
     AuthAuditService.log_event(
@@ -764,6 +786,17 @@ async def mfa_verify(
 
     # Create full access token
     access_token = AuthService.create_access_token(user.id)
+
+    # Create user session after MFA verification
+    device_info = user_agent or "Unknown device"
+    SessionService.create_session(
+        db=db,
+        user_id=user.id,
+        access_token=access_token,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        device_info=device_info,
+    )
 
     return Token(access_token=access_token, token_type="bearer", mfa_required=False)
 
