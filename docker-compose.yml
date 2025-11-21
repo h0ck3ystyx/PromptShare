@@ -1,37 +1,38 @@
 version: '3.8'
 
 services:
-  postgres-test:
+  postgres:
     image: postgres:16-alpine
-    container_name: promptshare-test-db
+    container_name: promptshare-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ChgMeS0m3t_m3123
       POSTGRES_DB: promptshare
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d promptshare"]
-      interval: 2s
+      interval: 5s
       timeout: 5s
       retries: 5
-    tmpfs:
-      - /var/lib/postgresql/data
-    # Use tmpfs for faster test database (data is lost on container stop)
 
-  redis-test:
+  redis:
     image: redis:7-alpine
-    container_name: promptshare-test-redis
+    container_name: promptshare-redis
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 2s
+      interval: 5s
       timeout: 5s
       retries: 5
-    tmpfs:
-      - /data
-    # Use tmpfs for faster test Redis (data is lost on container stop)
-    command: redis-server --appendonly no
+    command: redis-server --appendonly yes
 
+volumes:
+  postgres_data:
+  redis_data:
 
