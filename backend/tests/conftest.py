@@ -184,8 +184,9 @@ def client(db_session):
                 def retry(self, *args, **kwargs):
                     raise Exception("Retry called")
             task_instance = MockTask()
-            # Call the actual task function with task instance as first arg
-            return send_notification_task(task_instance, *args, **kwargs)
+            # Call the actual task function - task_instance is 'self' for bound tasks
+            # So we call .run() which doesn't include self
+            return send_notification_task.run(*args, **kwargs)
         
         def sync_bulk_task(*args, **kwargs):
             from src.tasks.notifications import send_bulk_notifications_task

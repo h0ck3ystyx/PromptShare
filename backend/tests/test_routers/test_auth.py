@@ -54,7 +54,8 @@ class TestAuthRouter:
 
     @patch("src.routers.auth.run_in_threadpool")
     @patch("src.routers.auth.AuthService")
-    def test_login_active_user_succeeds(self, mock_auth_service, mock_run_in_threadpool, client, db_session):
+    @patch("src.routers.auth.SessionService")
+    def test_login_active_user_succeeds(self, mock_session_service, mock_auth_service, mock_run_in_threadpool, client, db_session):
         """Test that active users can log in successfully."""
         # Mock LDAP authentication success
         ldap_user_info = {
@@ -79,6 +80,10 @@ class TestAuthRouter:
         mock_auth_service.get_or_create_user.return_value = active_user
         # Mock token creation
         mock_auth_service.create_access_token.return_value = "test_token_123"
+        # Mock session creation
+        from unittest.mock import MagicMock
+        mock_session = MagicMock()
+        mock_session_service.create_session.return_value = mock_session
 
         # Attempt to log in
         response = client.post(
@@ -93,4 +98,6 @@ class TestAuthRouter:
 
         # Verify token was created
         mock_auth_service.create_access_token.assert_called_once_with(active_user.id)
+        # Verify session was created
+        mock_session_service.create_session.assert_called_once()
 

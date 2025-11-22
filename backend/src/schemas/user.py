@@ -56,6 +56,7 @@ class Token(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
+    mfa_required: bool = False  # Indicates if MFA verification is required
 
 
 class UserRoleUpdate(BaseModel):
