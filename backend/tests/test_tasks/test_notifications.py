@@ -29,26 +29,16 @@ class TestNotificationTasks:
         db_session.add(user)
         db_session.commit()
 
-        # Create a mock task instance with db property pointing to test session
-        class MockTask:
-            def __init__(self):
-                self._db = db_session
-            @property
-            def db(self):
-                return self._db
-            def retry(self, *args, **kwargs):
-                raise Exception("Retry called")
-
-        task_instance = MockTask()
-
-        # Call task function directly (bypassing Celery queue)
-        result = send_notification_task(task_instance,
-            user_id=str(user.id),
-            notification_type=NotificationType.NEW_PROMPT.value,
-            message="Test notification",
-            prompt_id=None,
-            send_email=False,
-        )
+        # Call task function directly using .run() which handles bound task self automatically
+        # Patch SessionLocal to use our test session
+        with patch("src.tasks.notifications.SessionLocal", return_value=db_session):
+            result = send_notification_task.run(
+                user_id=str(user.id),
+                notification_type=NotificationType.NEW_PROMPT.value,
+                message="Test notification",
+                prompt_id=None,
+                send_email=False,
+            )
 
         assert result["status"] == "created"
         assert "notification_id" in result
@@ -82,19 +72,18 @@ class TestNotificationTasks:
             def retry(self, *args, **kwargs):
                 raise Exception("Retry called")
 
-        task_instance = MockTask()
-
         # Mock email service
-        with patch("src.tasks.notifications.EmailService.is_enabled", return_value=True):
-            with patch("src.tasks.notifications.EmailService.send_notification_email", new_callable=AsyncMock) as mock_email:
-                # Call task function directly
-                result = send_notification_task(task_instance,
-                    user_id=str(user.id),
-                    notification_type=NotificationType.COMMENT.value,
-                    message="Test notification",
-                    prompt_id=str(uuid4()),
-                    send_email=True,
-                )
+        with patch("src.tasks.notifications.SessionLocal", return_value=db_session):
+            with patch("src.tasks.notifications.EmailService.is_enabled", return_value=True):
+                with patch("src.tasks.notifications.EmailService.send_notification_email", new_callable=AsyncMock) as mock_email:
+                    # Call task function directly using .run()
+                    result = send_notification_task.run(
+                        user_id=str(user.id),
+                        notification_type=NotificationType.COMMENT.value,
+                        message="Test notification",
+                        prompt_id=str(uuid4()),
+                        send_email=True,
+                    )
 
                 assert result["status"] == "created"
                 assert result["email_sent"] is True
@@ -189,17 +178,16 @@ class TestNotificationTasks:
             def retry(self, *args, **kwargs):
                 raise Exception("Retry called")
 
-        task_instance = MockTask()
-
         # Simulate failure by passing invalid notification type
-        with pytest.raises(ValueError):
-            send_notification_task(task_instance,
-                user_id=str(user.id),
-                notification_type="INVALID_TYPE",
-                message="Test",
-                prompt_id=None,
-                send_email=False,
-            )
+        with patch("src.tasks.notifications.SessionLocal", return_value=db_session):
+            with pytest.raises(ValueError):
+                send_notification_task.run(
+                    user_id=str(user.id),
+                    notification_type="INVALID_TYPE",
+                    message="Test",
+                    prompt_id=None,
+                    send_email=False,
+                )
 
         # In real Celery, retry would be called
         # Here we just verify the exception is raised

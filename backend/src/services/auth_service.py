@@ -1,16 +1,18 @@
-"""Authentication service for LDAP/AD integration."""
+"""Authentication service for LDAP/AD and local authentication."""
 
 import ldap
+import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
-from jose import jwt
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from src.config import settings
 from src.models.user import User
 from src.constants import UserRole
+from src.services.password_service import PasswordService
 
 
 class AuthService:
@@ -119,18 +121,129 @@ class AuthService:
         return user
 
     @staticmethod
-    def create_access_token(user_id: UUID) -> str:
+    def authenticate_local(db: Session, username: str, password: str) -> Optional[User]:
+        """
+        Authenticate user with local credentials.
+
+        Args:
+            db: Database session
+            username: Username or email
+            password: Plain text password
+
+        Returns:
+            User: User object if authentication succeeds, None otherwise
+        """
+        # Try username first, then email
+        user = db.query(User).filter(
+            (User.username == username) | (User.email == username)
+        ).first()
+
+        if not user:
+            return None
+
+        # Check if user has local auth enabled
+        if user.auth_method != "local" or not user.password_hash:
+            return None
+
+        # Verify password
+        if not PasswordService.verify_password(password, user.password_hash):
+            return None
+
+        # Check if account is active
+        if not user.is_active:
+            return None
+
+        # Update last login
+        user.last_login = datetime.now(UTC)
+        db.commit()
+        db.refresh(user)
+
+        return user
+
+    @staticmethod
+    def create_access_token(user_id: UUID, remember_me: bool = False) -> str:
         """
         Create JWT access token for user.
 
         Args:
             user_id: User UUID
+            remember_me: If True, use longer expiry for remember me
 
         Returns:
             str: JWT access token
         """
-        expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
+        if remember_me:
+            expire_minutes = settings.remember_me_expiry_days * 24 * 60
+        else:
+            expire_minutes = settings.access_token_expire_minutes
+
+        expire = datetime.now(UTC) + timedelta(minutes=expire_minutes)
         to_encode = {"sub": str(user_id), "exp": expire}
         encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
         return encoded_jwt
+
+    @staticmethod
+    def create_pending_mfa_token(user_id: UUID) -> str:
+        """
+        Create a temporary JWT token for pending MFA verification.
+
+        This token can only be used to complete MFA verification, not for API access.
+
+        Args:
+            user_id: User UUID
+
+        Returns:
+            str: JWT token for pending MFA verification
+        """
+        # Short expiry for pending MFA (10 minutes)
+        expire = datetime.now(UTC) + timedelta(minutes=10)
+        to_encode = {
+            "sub": str(user_id),
+            "exp": expire,
+            "pending_mfa": True,  # Mark as pending MFA token
+        }
+        encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+        return encoded_jwt
+
+    @staticmethod
+    def verify_pending_mfa_token(token: str) -> Optional[UUID]:
+        """
+        Verify and extract user_id from pending MFA token.
+
+        Args:
+            token: Pending MFA JWT token
+
+        Returns:
+            UUID: User ID if token is valid, None otherwise
+        """
+        try:
+            payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+            if not payload.get("pending_mfa"):
+                return None
+            user_id_str = payload.get("sub")
+            if user_id_str is None:
+                return None
+            return UUID(user_id_str)
+        except (JWTError, ValueError):
+            return None
+
+    @staticmethod
+    def generate_reset_token() -> str:
+        """
+        Generate a secure password reset token.
+
+        Returns:
+            str: Secure random token
+        """
+        return secrets.token_urlsafe(32)
+
+    @staticmethod
+    def generate_verification_token() -> str:
+        """
+        Generate a secure email verification token.
+
+        Returns:
+            str: Secure random token
+        """
+        return secrets.token_urlsafe(32)
 

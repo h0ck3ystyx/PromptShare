@@ -24,7 +24,7 @@ class TestOnboardingRouter:
             role=UserRole.MEMBER,
         )
         db_session.add(user)
-        db_session.commit()
+        db_session.flush()  # Flush to get user.id
 
         # Create featured collection
         collection = Collection(
@@ -35,7 +35,7 @@ class TestOnboardingRouter:
             display_order=0,
         )
         db_session.add(collection)
-        db_session.commit()
+        db_session.flush()
 
         # Create FAQ
         faq = FAQ(

@@ -12,3 +12,9 @@ rules:
   - Document complex code and prompt AI to add clarifying comments where needed.
   - No secrets in code—use secure env or vault integration.
   - Review and upvote effective Cursor rules in team meetings.[web:43][web:47][web:49][web:59]
+  - spin up needed back-end stacks required for deterministic testing if they are not already running.
+  - ensure the frontend is updated when api changes are made.
+  - When you add/modify a model, also add an Alembic migration under backend/migrations/versions/ and document the change.
+  - update the relevant plan/setup markdown whenever features move from “planned” to “done” or when behavior changes.
+  
+

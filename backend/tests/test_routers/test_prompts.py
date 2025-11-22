@@ -50,7 +50,7 @@ class TestPromptRouter:
             role=UserRole.MEMBER,
         )
         db_session.add(author)
-        db_session.commit()
+        db_session.flush()  # Flush to get author.id
 
         # Create prompts
         prompt1 = Prompt(
@@ -86,6 +86,9 @@ class TestPromptRouter:
             full_name="Test Author",
             role=UserRole.MEMBER,
         )
+        db_session.add(author)
+        db_session.flush()  # Flush to get author.id
+        
         prompt = Prompt(
             title="Python Guide",
             content="Python programming content",
@@ -93,7 +96,7 @@ class TestPromptRouter:
             author_id=author.id,
             status=PromptStatus.PUBLISHED,
         )
-        db_session.add_all([author, prompt])
+        db_session.add(prompt)
         db_session.commit()
 
         response = client.get("/api/prompts", params={"q": "Python"})
@@ -123,7 +126,7 @@ class TestPromptRouter:
             role=UserRole.MEMBER,
         )
         db_session.add(author)
-        db_session.commit()
+        db_session.flush()  # Flush to get author.id
 
         # Create prompts
         prompt1 = Prompt(
@@ -164,7 +167,7 @@ class TestPromptRouter:
             role=UserRole.MEMBER,
         )
         db_session.add(author)
-        db_session.commit()
+        db_session.flush()  # Flush to get author.id
 
         # Create prompt
         prompt = Prompt(
@@ -269,7 +272,7 @@ class TestPromptRouter:
             role=UserRole.MEMBER,
         )
         db_session.add(author)
-        db_session.commit()
+        db_session.flush()  # Flush to get author.id
         token = AuthService.create_access_token(author.id)
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -381,7 +384,7 @@ class TestPromptRouter:
             role=UserRole.MEMBER,
         )
         db_session.add(author)
-        db_session.commit()
+        db_session.flush()  # Flush to get author.id
 
         # Create prompt
         prompt = Prompt(
