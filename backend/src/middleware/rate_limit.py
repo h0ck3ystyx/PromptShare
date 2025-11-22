@@ -4,9 +4,9 @@ import time
 from collections import defaultdict
 from typing import Dict, Tuple
 
-from fastapi import Request, HTTPException, status
+from fastapi import Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import JSONResponse
 
 from src.config import settings
 
@@ -108,9 +108,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         allowed, message = self._check_rate_limit(ip_address, request.url.path)
 
         if not allowed:
-            raise HTTPException(
+            return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=message,
+                content={"detail": message},
                 headers={"Retry-After": "60"},
             )
 

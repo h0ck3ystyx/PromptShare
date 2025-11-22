@@ -30,6 +30,12 @@ const routes = [
     meta: { requiresGuest: true },
   },
   {
+    path: '/verify-email',
+    name: 'VerifyEmail',
+    component: () => import('../views/VerifyEmail.vue'),
+    meta: { requiresGuest: true },
+  },
+  {
     path: '/security',
     name: 'SecurityDashboard',
     component: () => import('../views/SecurityDashboard.vue'),
@@ -127,4 +133,3 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
-

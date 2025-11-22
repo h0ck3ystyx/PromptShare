@@ -1,5 +1,6 @@
 """Email notification service."""
 
+import logging
 from typing import Optional
 from uuid import UUID
 
@@ -10,6 +11,8 @@ from email.mime.multipart import MIMEMultipart
 from src.config import settings
 from src.constants import NotificationType
 from src.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 class EmailService:
@@ -174,13 +177,28 @@ class EmailService:
             bool: True if email was sent successfully, False otherwise
         """
         if not EmailService.is_enabled():
+            logger.warning(
+                "Email service is disabled. Cannot send email to %s",
+                to_email,
+            )
             return False
 
         try:
             await EmailService._send_email_async(to_email, "", subject, body)
+            logger.info(
+                "Email sent successfully to %s with subject: %s",
+                to_email,
+                subject,
+            )
             return True
         except Exception as e:
-            print(f"Failed to send email: {e}")
+            logger.error(
+                "Failed to send email to %s: %s (type: %s)",
+                to_email,
+                str(e),
+                type(e).__name__,
+                exc_info=True,
+            )
             return False
 
     @staticmethod
@@ -213,12 +231,19 @@ class EmailService:
         message.attach(html_part)
 
         # Send via SMTP
+        # Port 465 uses direct SSL/TLS (use_tls=True)
+        # Port 587 uses STARTTLS (start_tls=True) - upgrade from plain to TLS
+        # Port 25 is typically plain text (no encryption)
+        use_tls = settings.email_smtp_port == 465
+        start_tls = settings.email_smtp_port == 587
+        
         await aiosmtplib.send(
             message,
             hostname=settings.email_smtp_host,
             port=settings.email_smtp_port,
             username=settings.email_smtp_user,
             password=settings.email_smtp_password,
-            use_tls=settings.email_smtp_port == 587,
+            use_tls=use_tls,
+            start_tls=start_tls,
         )
 

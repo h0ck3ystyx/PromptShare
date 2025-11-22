@@ -187,11 +187,13 @@ export const useAuthStore = defineStore('auth', () => {
       mfaRequired.value = false
       pendingMfaToken.value = null
 
-      // Fetch user info
+      // Save token to localStorage FIRST so axios interceptor can use it
+      localStorage.setItem('auth_token', token.value)
+
+      // Fetch user info (now the token is available in localStorage)
       const userResponse = await authAPI.getCurrentUser()
       user.value = userResponse.data
 
-      localStorage.setItem('auth_token', token.value)
       localStorage.setItem('user', JSON.stringify(user.value))
       setTokenExpiry()
       updateActivityTime()
@@ -233,11 +235,13 @@ export const useAuthStore = defineStore('auth', () => {
       mfaRequired.value = false
       pendingMfaToken.value = null
 
-      // Fetch user info
+      // Save token to localStorage FIRST so axios interceptor can use it
+      localStorage.setItem('auth_token', token.value)
+
+      // Fetch user info (now the token is available in localStorage)
       const userResponse = await authAPI.getCurrentUser()
       user.value = userResponse.data
 
-      localStorage.setItem('auth_token', token.value)
       localStorage.setItem('user', JSON.stringify(user.value))
       setTokenExpiry()
       updateActivityTime()

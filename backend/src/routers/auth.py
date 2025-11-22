@@ -1,5 +1,6 @@
 """Authentication router endpoints."""
 
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Optional
 from uuid import UUID
@@ -38,6 +39,7 @@ from src.services.password_validation_service import PasswordValidationService
 from src.services.session_service import SessionService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+logger = logging.getLogger(__name__)
 
 
 def get_client_ip(request: Request) -> Optional[str]:
@@ -276,9 +278,10 @@ async def register(
     db.commit()
 
     # Send verification email
+    email_sent = False
     if settings.email_enabled:
-        # Email verification has a GET handler on the backend API
-        verification_url = f"{request.base_url}api/auth/verify-email?token={token}"
+        # Use frontend URL for verification link (not API base URL)
+        verification_url = f"{settings.app_url}/verify-email?token={token}"
         subject = "Verify your PromptShare account"
         body = f"""
         Welcome to PromptShare!
@@ -290,7 +293,17 @@ async def register(
         
         If you didn't create this account, please ignore this email.
         """
-        await EmailService.send_email(user.email, subject, body)
+        email_sent = await EmailService.send_email(user.email, subject, body)
+        
+        if not email_sent:
+            # Log the failure but don't fail registration (user is already created)
+            # In production, consider enqueueing a retry or alerting admins
+            logger.error(
+                "Failed to send verification email to %s for user %s (ID: %s)",
+                user.email,
+                user.username,
+                user.id,
+            )
 
     # Log registration
     ip_address = get_client_ip(request)
@@ -437,6 +450,7 @@ async def password_reset_request(
         db.commit()
 
         # Send reset email
+        email_sent = False
         if settings.email_enabled:
             # Use frontend URL for password reset link (not API base URL)
             reset_url = f"{settings.app_url}/password-reset?token={token}"
@@ -451,7 +465,17 @@ async def password_reset_request(
             
             If you didn't request this, please ignore this email.
             """
-            await EmailService.send_email(user.email, subject, body)
+            email_sent = await EmailService.send_email(user.email, subject, body)
+            
+            if not email_sent:
+                # Log the failure (we still return success to prevent email enumeration)
+                # In production, consider enqueueing a retry or alerting admins
+                logger.error(
+                    "Failed to send password reset email to %s for user %s (ID: %s)",
+                    user.email,
+                    user.username,
+                    user.id,
+                )
 
         # Log reset request
         ip_address = get_client_ip(request)
