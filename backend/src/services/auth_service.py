@@ -6,7 +6,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 from sqlalchemy.orm import Session
 
 from src.config import settings
@@ -224,7 +225,7 @@ class AuthService:
             if user_id_str is None:
                 return None
             return UUID(user_id_str)
-        except (JWTError, ValueError):
+        except (InvalidTokenError, ValueError):
             return None
 
     @staticmethod
