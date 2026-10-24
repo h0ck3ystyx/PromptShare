@@ -6,7 +6,8 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, Header, status
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 from sqlalchemy.orm import Session
 
 from src.config import settings
@@ -51,7 +52,7 @@ def get_current_user(
         if user_id_str is None:
             raise credentials_exception
         user_id = UUID(user_id_str)
-    except (JWTError, ValueError):
+    except (InvalidTokenError, ValueError):
         raise credentials_exception
 
     # Check if session is still active (if session management is enabled)
@@ -128,7 +129,7 @@ def get_optional_user(
         if user_id_str is None:
             return None
         user_id = UUID(user_id_str)
-    except (JWTError, ValueError):
+    except (InvalidTokenError, ValueError):
         return None
 
     user = db.query(User).filter(User.id == user_id).first()
