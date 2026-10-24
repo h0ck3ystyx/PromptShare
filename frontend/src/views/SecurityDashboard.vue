@@ -4,7 +4,7 @@
     
     <div v-if="loading" class="text-center py-8">Loading...</div>
     
-    <div v-else-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+    <div v-else-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-sm mb-4">
       {{ error }}
     </div>
     
@@ -30,14 +30,14 @@
           <button
             v-if="!securityData.mfa_enabled"
             @click="showMFAEnroll = true"
-            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            class="bg-blue-600 text-white px-4 py-2 rounded-sm hover:bg-blue-700"
           >
             Enable MFA
           </button>
           <button
             v-else
             @click="showMFADisable = true"
-            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            class="bg-red-600 text-white px-4 py-2 rounded-sm hover:bg-red-700"
           >
             Disable MFA
           </button>
@@ -54,7 +54,7 @@
           <div
             v-for="session in securityData.active_sessions"
             :key="session.id"
-            class="border rounded p-4 flex justify-between items-center"
+            class="border rounded-sm p-4 flex justify-between items-center"
           >
             <div>
               <div class="font-medium">{{ session.device_info || 'Unknown Device' }}</div>
@@ -63,7 +63,7 @@
             </div>
             <button
               @click="revokeSession(session.id)"
-              class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+              class="bg-red-600 text-white px-3 py-1 rounded-sm text-sm hover:bg-red-700"
             >
               Revoke
             </button>
@@ -81,7 +81,7 @@
           <div
             v-for="device in securityData.trusted_devices"
             :key="device.id"
-            class="border rounded p-4 flex justify-between items-center"
+            class="border rounded-sm p-4 flex justify-between items-center"
           >
             <div>
               <div class="font-medium">{{ device.device_name }}</div>
@@ -90,7 +90,7 @@
             </div>
             <button
               @click="removeDevice(device.id)"
-              class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+              class="bg-red-600 text-white px-3 py-1 rounded-sm text-sm hover:bg-red-700"
             >
               Remove
             </button>

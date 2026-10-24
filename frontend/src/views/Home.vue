@@ -31,7 +31,7 @@
         <div
           v-for="collection in featuredCollections"
           :key="collection.id"
-          class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition"
+          class="bg-white rounded-lg shadow-sm p-6 hover:shadow-lg transition"
         >
           <h3 class="text-xl font-semibold mb-2">{{ collection.name }}</h3>
           <p class="text-gray-600 text-sm mb-4">{{ collection.description }}</p>
@@ -47,15 +47,15 @@
 
     <!-- Quick Stats -->
     <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white rounded-lg shadow p-6 text-center">
+      <div class="bg-white rounded-lg shadow-sm p-6 text-center">
         <div class="text-3xl font-bold text-blue-600">{{ stats.totalPrompts }}</div>
         <div class="text-gray-600 mt-2">Total Prompts</div>
       </div>
-      <div class="bg-white rounded-lg shadow p-6 text-center">
+      <div class="bg-white rounded-lg shadow-sm p-6 text-center">
         <div class="text-3xl font-bold text-blue-600">{{ stats.totalUsers }}</div>
         <div class="text-gray-600 mt-2">Active Users</div>
       </div>
-      <div class="bg-white rounded-lg shadow p-6 text-center">
+      <div class="bg-white rounded-lg shadow-sm p-6 text-center">
         <div class="text-3xl font-bold text-blue-600">{{ stats.totalViews }}</div>
         <div class="text-gray-600 mt-2">Total Views</div>
       </div>

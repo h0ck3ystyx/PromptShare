@@ -16,7 +16,7 @@
             type="text"
             maxlength="6"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest"
             placeholder="000000"
             @input="form.code = form.code.replace(/\D/g, '')"
           />
@@ -26,7 +26,7 @@
             id="rememberDevice"
             v-model="form.rememberDevice"
             type="checkbox"
-            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded-sm"
           />
           <label for="rememberDevice" class="ml-2 block text-sm text-gray-700">
             Remember this device for 30 days

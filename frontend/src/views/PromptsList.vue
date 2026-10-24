@@ -12,7 +12,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
@@ -20,7 +20,7 @@
             v-model="filters.q"
             type="text"
             placeholder="Search prompts..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             @input="debouncedSearch"
           />
         </div>
@@ -28,7 +28,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Platform</label>
           <select
             v-model="filters.platform_tag"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             @change="applyFilters"
           >
             <option value="">All Platforms</option>
@@ -42,7 +42,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
           <select
             v-model="filters.category_id"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             @change="applyFilters"
           >
             <option value="">All Categories</option>
@@ -55,7 +55,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
           <select
             v-model="filters.sort_by"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             @change="applyFilters"
           >
             <option value="newest">Newest</option>
@@ -93,7 +93,7 @@
       <div
         v-for="prompt in promptsStore.prompts"
         :key="prompt.id"
-        class="bg-white rounded-lg shadow hover:shadow-lg transition p-6"
+        class="bg-white rounded-lg shadow-sm hover:shadow-lg transition p-6"
       >
         <div class="flex justify-between items-start mb-2">
           <h3 class="text-xl font-semibold text-gray-900">
@@ -106,7 +106,7 @@
           </h3>
           <span
             v-if="prompt.is_featured"
-            class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded"
+            class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded-sm"
           >
             Featured
           </span>
@@ -116,7 +116,7 @@
           <span
             v-for="platform in prompt.platform_tags"
             :key="platform"
-            class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+            class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-sm"
           >
             {{ platform.replace('_', ' ').toUpperCase() }}
           </span>

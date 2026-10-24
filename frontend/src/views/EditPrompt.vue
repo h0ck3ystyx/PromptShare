@@ -9,7 +9,7 @@
     <form
       v-else-if="promptsStore.currentPrompt"
       @submit.prevent="handleSubmit"
-      class="bg-white rounded-lg shadow p-6 space-y-6"
+      class="bg-white rounded-lg shadow-sm p-6 space-y-6"
     >
       <!-- Same form fields as CreatePrompt -->
       <div>
@@ -22,7 +22,7 @@
           type="text"
           required
           maxlength="255"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
@@ -35,7 +35,7 @@
           v-model="form.content"
           required
           rows="10"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-mono text-sm"
         ></textarea>
       </div>
 
