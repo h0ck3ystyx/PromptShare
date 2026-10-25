@@ -7,7 +7,7 @@
         :key="star"
         @click="ratePrompt(star)"
         :disabled="loading"
-        class="text-2xl focus:outline-none disabled:opacity-50"
+        class="text-2xl focus:outline-hidden disabled:opacity-50"
         :class="star <= (userRating || 0) ? 'text-yellow-400' : 'text-gray-300'"
       >
         ★

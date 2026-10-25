@@ -5,7 +5,7 @@
       <div
         v-for="collection in collections"
         :key="collection.id"
-        class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition"
+        class="bg-white rounded-lg shadow-sm p-6 hover:shadow-lg transition"
       >
         <h3 class="text-xl font-semibold mb-2">{{ collection.name }}</h3>
         <p class="text-gray-600 text-sm mb-4">{{ collection.description }}</p>

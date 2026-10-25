@@ -6,7 +6,7 @@
       <div
         v-for="prompt in collection?.prompts"
         :key="prompt.id"
-        class="bg-white rounded-lg shadow p-6"
+        class="bg-white rounded-lg shadow-sm p-6"
       >
         <h3 class="text-xl font-semibold mb-2">
           <router-link :to="`/prompts/${prompt.id}`" class="hover:text-blue-600">

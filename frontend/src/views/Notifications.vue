@@ -5,7 +5,7 @@
       <div
         v-for="notification in notifications"
         :key="notification.id"
-        class="bg-white rounded-lg shadow p-4"
+        class="bg-white rounded-lg shadow-sm p-4"
         :class="{ 'bg-blue-50': !notification.is_read }"
       >
         <p>{{ notification.message }}</p>

@@ -17,7 +17,7 @@
             v-model="form.username"
             type="text"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             placeholder="Enter your username or email"
           />
         </div>
@@ -30,7 +30,7 @@
             v-model="form.password"
             type="password"
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             placeholder="Enter your password"
           />
         </div>

@@ -1,14 +1,14 @@
 <template>
   <div v-if="promptsStore.currentPrompt">
     <!-- Header -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
       <div class="flex justify-between items-start mb-4">
         <div class="flex-1">
           <div class="flex items-center space-x-2 mb-2">
             <h1 class="text-3xl font-bold">{{ promptsStore.currentPrompt.title }}</h1>
             <span
               v-if="promptsStore.currentPrompt.is_featured"
-              class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded"
+              class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded-sm"
             >
               Featured
             </span>
@@ -18,7 +18,7 @@
             <span
               v-for="platform in promptsStore.currentPrompt.platform_tags"
               :key="platform"
-              class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+              class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-sm"
             >
               {{ platform.replace('_', ' ').toUpperCase() }}
             </span>
@@ -41,7 +41,7 @@
     </div>
 
     <!-- Prompt Content -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold">Prompt Content</h2>
         <CopyButton
@@ -50,18 +50,18 @@
         />
       </div>
       <pre
-        class="bg-gray-50 p-4 rounded border overflow-x-auto whitespace-pre-wrap"
+        class="bg-gray-50 p-4 rounded-sm border overflow-x-auto whitespace-pre-wrap"
       >{{ promptsStore.currentPrompt.content }}</pre>
     </div>
 
     <!-- Usage Tips -->
-    <div v-if="promptsStore.currentPrompt.usage_tips" class="bg-blue-50 rounded-lg shadow p-6 mb-6">
+    <div v-if="promptsStore.currentPrompt.usage_tips" class="bg-blue-50 rounded-lg shadow-sm p-6 mb-6">
       <h2 class="text-xl font-semibold mb-2">Usage Tips</h2>
       <p class="text-gray-700">{{ promptsStore.currentPrompt.usage_tips }}</p>
     </div>
 
     <!-- Use Cases -->
-    <div v-if="promptsStore.currentPrompt.use_cases?.length > 0" class="bg-white rounded-lg shadow p-6 mb-6">
+    <div v-if="promptsStore.currentPrompt.use_cases?.length > 0" class="bg-white rounded-lg shadow-sm p-6 mb-6">
       <h2 class="text-xl font-semibold mb-4">Use Cases</h2>
       <ul class="list-disc list-inside space-y-2">
         <li v-for="(useCase, index) in promptsStore.currentPrompt.use_cases" :key="index">
@@ -71,7 +71,7 @@
     </div>
 
     <!-- Actions (Rating, Upvote) -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
       <div class="flex items-center space-x-6">
         <RatingComponent :prompt-id="promptsStore.currentPrompt.id" />
         <UpvoteComponent :prompt-id="promptsStore.currentPrompt.id" />

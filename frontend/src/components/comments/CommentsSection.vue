@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg shadow p-6">
+  <div class="bg-white rounded-lg shadow-sm p-6">
     <h2 class="text-xl font-semibold mb-4">Comments</h2>
     
     <!-- Add Comment Form -->
@@ -8,7 +8,7 @@
         v-model="newComment"
         placeholder="Add a comment..."
         rows="3"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 mb-2"
       ></textarea>
       <button
         @click="submitComment"
