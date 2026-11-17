@@ -27,7 +27,7 @@
     "@vitejs/plugin-vue": "^6.0.10",
     "@vitest/ui": "^5.1.0",
     "@vue/test-utils": "^2.5.1",
-    "eslint": "^9.39.1",
+    "eslint": "^10.15.0",
     "eslint-plugin-vue": "^10.12.1",
     "jsdom": "^27.0.1",
     "postcss": "^8.5.32",
