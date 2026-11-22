@@ -1,7 +1,5 @@
 """Tests for password validation service."""
 
-import pytest
-
 from src.services.password_validation_service import PasswordValidationService
 
 
